@@ -1,36 +1,77 @@
+// #![warn(missing_docs)]
+
+//! [betterm](crate) is a better terminal crate
+//!
+//! its simple!
+//! ```rust
+//! use betterm::*;
+//!
+//! println!(
+//!     "{}{}Hello world!{}",
+//!     color::FG_GREEN, style::INTENSITY_BOLD,
+//!     RESET_ALL
+//! );
+//! ```
+
+/// reset the effects of [color] and [style]
 pub const RESET_ALL: &str = "\x1b[0m";
 
+/// characters like newline, tabs, ...
 pub mod basic {
+    /// used as the start of ANSI codes
     pub const ESCAPE:          char = '\x1b';
 
     // pub const BELL:            char = '\a';
 
     // pub const BACKSPACE:       char = '\b';
 
+    /// new line (behaves differently in raw mode)
     pub const LINE_FEED:       char = '\n';
+
+    /// move the cursor to the first column
     pub const CARRIAGE_RETURN: char = '\r';
 
+    /// snap cursor to the next tabstop
     pub const HORIZONTAL_TAB:  char = '\t';
+
     // pub const   VERTICAL_TAB:  char = '\v';
 }
 
+/// erase text in the terminal
 pub mod clear {
+    /// clear every line under cursor, and the current line right of cursor
     pub const       SCREEN_UNDER_CURSOR:  &str = "\x1b[0J";
+
+    /// clear every line above cursor, and the current line left of cursor
     pub const       SCREEN_ABOVE_CURSOR:  &str = "\x1b[1J";
+
+    /// clear every line
     pub const WHOLE_SCREEN:               &str = "\x1b[2J";
 
+    /// clear the scrollback, a.k.a. the visual history of the terminal
     pub const SCROLLBACK_BUFFER:          &str = "\x1b[3J";
 
+    /// clear the current line right of cursor
     pub const       LINE_RIGHT_OF_CURSOR: &str = "\x1b[0K";
+
+    /// clear the current line left of cursor
     pub const       LINE_LEFT_OF_CURSOR:  &str = "\x1b[1K";
+
+    /// clear the current line
     pub const WHOLE_LINE:                 &str = "\x1b[2K";
 }
 
+/// ANSI, 256 lookup table, RGB
 pub mod color {
     use std::fmt;
 
+    /// reset the effects of FG_*
     pub const UNSET_FG:                 &str  = "\x1b[39m";
+
+    /// reset the effects of BG_*
     pub const UNSET_BG:                 &str  = "\x1b[49m";
+
+    /// reset the effects of UNDERLINE_*
     pub const UNSET_UNDERLINE:          &str  = "\x1b[59m";
 
     pub const FG_BLACK:                 &str  = "\x1b[30m";
@@ -87,9 +128,11 @@ pub mod color {
     pub const UNDERLINE_BRIGHT_CYAN:    &str  = "\x1b[116m";
     pub const UNDERLINE_BRIGHT_WHITE:   &str  = "\x1b[117m";
 
+    /// the amount of [web-safe colors](https://en.wikipedia.org/wiki/Web_colors#Web-safe_colors) in each array
     pub const WEB_SAFE_COLORS_LEN:      usize = u8::MAX as usize + 1;
 
     // TODO: generate these instead of hardcode, when rust macros git gud
+    /// foregroud [web-safe colors](https://en.wikipedia.org/wiki/Web_colors#Web-safe_colors) array
     pub static FG_WEB_SAFE_COLORS: [&str; WEB_SAFE_COLORS_LEN] = [
         // standard colors
         "\x1b[38;5;0m",   // black
@@ -357,6 +400,7 @@ pub mod color {
     ];
 
     // TODO: generate these instead of hardcode, when rust macros git gud
+    /// backgroud [web-safe colors](https://en.wikipedia.org/wiki/Web_colors#Web-safe_colors) array
     pub static BG_WEB_SAFE_COLORS: [&str; WEB_SAFE_COLORS_LEN] = [
         // standard colors
         "\x1b[48;5;0m",   // black
@@ -624,6 +668,7 @@ pub mod color {
     ];
 
     // TODO: generate these instead of hardcode, when rust macros git gud
+    /// underline [web-safe colors](https://en.wikipedia.org/wiki/Web_colors#Web-safe_colors) array
     pub static UNDERLINE_WEB_SAFE_COLORS: [&str; WEB_SAFE_COLORS_LEN] = [
         // standard colors
         "\x1b[58;5;0m",   // black
@@ -890,9 +935,31 @@ pub mod color {
         "\x1b[58;5;255m"  // white
     ];
 
-
+    /// foreground [RGB colors](https://en.wikipedia.org/wiki/RGB_color_model) (basically all the colors)
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
+    ///
+    /// (red, green, blue)
     #[derive(Clone, Copy, Debug)] pub struct        FgRgb(pub u8, pub u8, pub u8);
+
+    /// background [RGB colors](https://en.wikipedia.org/wiki/RGB_color_model) (basically all the colors)
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
+    ///
+    /// (red, green, blue)
     #[derive(Clone, Copy, Debug)] pub struct        BgRgb(pub u8, pub u8, pub u8);
+
+    /// underline [RGB colors](https://en.wikipedia.org/wiki/RGB_color_model) (basically all the colors)
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
+    ///
+    /// (red, green, blue)
     #[derive(Clone, Copy, Debug)] pub struct UnderlineRgb(pub u8, pub u8, pub u8);
 
     impl fmt::Display for FgRgb {
@@ -917,29 +984,99 @@ pub mod color {
     }
 }
 
+/// hide/show, movement, save/restore position
+///
+/// the coordinates are 1-based. that means the top left corner of the terminal is (1, 1)
 pub mod cursor {
     use std::fmt;
 
+    /// save the cursor position to restore it later
     pub const    SAVE_POSITION:      &str = "\x1b[s";
+
+    /// restore the saved cursor position
     pub const RESTORE_POSITION:      &str = "\x1b[u";
 
+    /// hide the cursor (it still exists and movement/typing works)
     pub const HIDE:                  &str = "\x1b[?25l";
+
+    /// show the cursor
     pub const SHOW:                  &str = "\x1b[?25h";
 
     pub const MOVE_TO_TOP_LEFT:      &str = "\x1b[1;1H";
+
     pub const MOVE_TO_START_OF_LINE: &str = "\x1b[1G";
 
+    /// move cursor up by the given number, it can scroll the terminal
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveUpBy                   (pub u16);
+
+    /// move cursor down by the given number, it can scroll the terminal
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveDownBy                 (pub u16);
+
+    /// move cursor right by the given number, it stops at the end of line
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveRightBy                (pub u16);
+
+    /// move cursor right by the given number, it stops at the start of line
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveLeftBy                 (pub u16);
+
+    /// move cursor down by one, and to the start of the line
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveToStartOfNextLine      (pub u16);
+
+    /// move cursor up by one, and to the start of the line
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveToStartOfPreviousLine  (pub u16);
+
+    /// move cursor to a column of the given number
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveToColumn               (pub u16);
+
+    /// move cursor to a row of the given number
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveToRow                  (pub u16);
+
+    /// move cursor to the specified cell (column first, row second)
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveToColumnAndRow         (pub u16, pub u16);
+
+    /// like [MoveToColumnAndRow], but behaves differently in certain terminal modes
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct FormattedMoveToColumnAndRow(pub u16, pub u16);
 
+    /// request the current cursor position
     #[must_use] pub fn get_position() -> (u16, u16) { todo!(); }
 
     impl fmt::Display for MoveUpBy {
@@ -1013,48 +1150,91 @@ pub mod cursor {
     }
 }
 
+/// raw mode, mouse input, focus reporting, bracketed paste
 pub mod mode {
     pub const TURN_FOCUS_REPORTS_ON:    &str = "\x1b[?1004h";
+
     pub const TURN_FOCUS_REPORTS_OFF:   &str = "\x1b[?1004l";
 
     pub const TURN_BRACKETED_PASTE_ON:  &str = "\x1b[?2004h";
+
     pub const TURN_BRACKETED_PASTE_OFF: &str = "\x1b[?2004l";
 
     // raw mode, mouse input, ...
 
+    /// check if raw mode is currently enabled
     #[must_use] pub fn is_raw() -> bool { todo!(); }
 }
 
+/// page break, AUX toggle
 pub mod printer {
     // pub const PAGE_BREAK: char = '\f';
 
     pub const TURN_AUX_ON:     &str = "\x1b[5i";
+
     pub const TURN_AUX_OFF:    &str = "\x1b[4i";
 }
 
+/// alternate screen, terminal size in cells or pixels
 pub mod screen {
+    /// enter a temporary screen where stuff does not affect the real one
     pub const ENTER_ALTERNATE: &str = "\x1b[?1049h";
+
+    /// get back to the real original terminal state and text
     pub const LEAVE_ALTERNATE: &str = "\x1b[?1049l";
 
+    /// check if the current screen is alternative
     #[must_use] pub fn     is_alternate () -> bool       { todo!(); }
+
+    /// get the terminal size in columns and rows
     #[must_use] pub fn   size_in_cells  () -> (u16, u16) { todo!(); }
+
+    /// get the terminal size in pixels (width first, height second)
     #[must_use] pub fn   size_in_pixels () -> (u16, u16) { todo!(); }
+
+    /// get the terminal width in columns
     #[must_use] pub fn  width_in_columns() -> u16        { todo!(); }
+
+    /// get the terminal width in pixels
     #[must_use] pub fn  width_in_pixels () -> u16        { todo!(); }
+
+    /// get the terminal height in rows
     #[must_use] pub fn height_in_rows   () -> u16        { todo!(); }
+
+    /// get the terminal height in pixels
     #[must_use] pub fn height_in_pixels () -> u16        { todo!(); }
 }
 
+/// up, down, set region
 pub mod scroll {
     use std::fmt;
 
     pub const   UP_BY_ONE:  &str = "\x1b[1S";
+
     pub const DOWN_BY_ONE:  &str = "\x1b[1T";
 
+    /// reset the effects of [SetRegionStartAndEndRow]
     pub const UNSET_REGION: &str = "\x1b[r";
 
+    /// scroll the terminal up by the given number (region can be customised with [SetRegionStartAndEndRow])
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct UpBy                   (pub u16);
+
+    /// scroll the terminal down by the given number (region can be customised with [SetRegionStartAndEndRow])
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct DownBy                 (pub u16);
+
+    /// set the scrolling region to the given range, lines outside are not affected
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct SetRegionStartAndEndRow(pub u16, pub u16);
 
     impl fmt::Display for UpBy {
@@ -1079,66 +1259,135 @@ pub mod scroll {
     }
 }
 
+/// bold, italic, underline, strikethrough, ...
 pub mod style {
     use std::fmt;
 
+    /// higher intensity of color, or thicker font weight
     pub const        INTENSITY_BOLD:            &str = "\x1b[1m";
+
+    /// lower intensity of color, or thinner font weight
     pub const        INTENSITY_FAINT:           &str = "\x1b[2m";
+
+    /// reset the effects of INTENSITY_*
     pub const  UNSET_INTENSITY:                 &str = "\x1b[22m";
 
+    /// slanted text (e.g. to indicate a quote, or emphasis)
     pub const        ITALIC:                    &str = "\x1b[3m";
+
+    /// reset the effects of [ITALIC]
     pub const  UNSET_ITALIC:                    &str = "\x1b[23m";
 
+    /// a line under text (e.g. to indicate something important)
     pub const        UNDERLINE:                 &str = "\x1b[4m";
-    pub const DOUBLE_UNDERLINE:                 &str = "\x1b[21m";
+
+    /// a double line under text (e.g. to indicate something really important)
+    pub const        UNDERLINE_DOUBLE:          &str = "\x1b[21m";
+
+    /// reset the effects of UNDERLINE_*
     pub const  UNSET_UNDERLINE:                 &str = "\x1b[24m";
 
-    pub const   SLOW_BLINK:                     &str = "\x1b[5m";
-    pub const   FAST_BLINK:                     &str = "\x1b[6m";
+    /// blink the text slowly (either with intensity or completely hide/show)
+    pub const   BLINK_SLOW:                     &str = "\x1b[5m";
+
+    /// blink the text quickly (either with intensity or completely hide/show)
+    pub const   BLINK_FAST:                     &str = "\x1b[6m";
+
+    /// reset the effects of BLINK_*
     pub const  UNSET_BLINK:                     &str = "\x1b[25m";
 
+    /// swap the background and foreground colors
     pub const        INVERT_COLORS:             &str = "\x1b[7m";
+
+    /// reset the effects of [INVERT_COLORS]
     pub const  UNSET_INVERT:                    &str = "\x1b[27m";
 
+    /// hide the text (it still exists and can be e.g. copied)
     pub const        CONCEAL:                   &str = "\x1b[8m";
+
+    /// reset the effects of [CONCEAL]
     pub const  UNSET_CONCEAL:                   &str = "\x1b[28m";
 
+    /// a line going through the text to indicate redacted text
     pub const        STRIKETHROUGH:             &str = "\x1b[9m";
+
+    /// reset the effects of [STRIKETHROUGH]
     pub const  UNSET_STRIKETHROUGH:             &str = "\x1b[29m";
 
     pub const        FONT_ALTERNATIVE_1:        &str = "\x1b[11m";
+
     pub const        FONT_ALTERNATIVE_2:        &str = "\x1b[12m";
+
     pub const        FONT_ALTERNATIVE_3:        &str = "\x1b[13m";
+
     pub const        FONT_ALTERNATIVE_4:        &str = "\x1b[14m";
+
     pub const        FONT_ALTERNATIVE_5:        &str = "\x1b[15m";
+
     pub const        FONT_ALTERNATIVE_6:        &str = "\x1b[16m";
+
     pub const        FONT_ALTERNATIVE_7:        &str = "\x1b[17m";
+
     pub const        FONT_ALTERNATIVE_8:        &str = "\x1b[18m";
+
     pub const        FONT_ALTERNATIVE_9:        &str = "\x1b[19m";
+
     pub const        FONT_GOTHIC:               &str = "\x1b[20m";
+
+    /// reset the effects of FONT_* (set the font to the primary one)
     pub const  UNSET_FONT:                      &str = "\x1b[10m";
 
     pub const        SPACING_PROPORTIONAL:      &str = "\x1b[26m";
+
+    /// reset the effects of [SPACING_PROPORTIONAL]
     pub const  UNSET_SPACING:                   &str = "\x1b[50m";
 
+    /// emoji [variation selector](https://en.wikipedia.org/wiki/Variation_Selectors_(Unicode_block))
     pub const        EMOJI_FRAMED:              &str = "\x1b[51m";
+
+    /// emoji [variation selector](https://en.wikipedia.org/wiki/Variation_Selectors_(Unicode_block))
     pub const        EMOJI_ENCIRCLED:           &str = "\x1b[52m";
+
+    /// reset the effects of EMOJI_*
     pub const  UNSET_EMOJI:                     &str = "\x1b[54m";
 
+    /// a line on top of text (e.g. to indicate repeating decimals)
     pub const        OVERLINE:                  &str = "\x1b[53m";
+
+    /// reset the effects of [OVERLINE]
     pub const  UNSET_OVERLINE:                  &str = "\x1b[55m";
 
+    /// sometimes a line on the right side
     pub const        IDEOGRAM_UNDERLINE:        &str = "\x1b[60m";
+
+    /// sometimes a double line on the right side
     pub const        IDEOGRAM_DOUBLE_UNDERLINE: &str = "\x1b[61m";
+
+    /// sometimes a line on the left side
     pub const        IDEOGRAM_OVERLINE:         &str = "\x1b[62m";
+
+    /// sometimes a double line on the left side
     pub const        IDEOGRAM_DOUBLE_OVERLINE:  &str = "\x1b[63m";
+
     pub const        IDEOGRAM_STRESS_MARKING:   &str = "\x1b[64m";
+
+    /// reset the effects of IDEOGRAM_*
     pub const  UNSET_IDEOGRAM:                  &str = "\x1b[65m";
 
+    /// [superscript](https://en.wikipedia.org/wiki/Subscript_and_superscript), small text above the normal line
     pub const        SCRIPT_SUPER:              &str = "\x1b[73m";
+
+    /// [subscript](https://en.wikipedia.org/wiki/Subscript_and_superscript), small text under the normal line
     pub const        SCRIPT_SUB:                &str = "\x1b[74m";
+
+    /// reset the effects of SCRIPT_*
     pub const  UNSET_SCRIPT:                    &str = "\x1b[75m";
 
+    /// the same as FONT_ALTERNATIVE_* (panics when input is outside 1..=9)
+    ///
+    /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
+    /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
+    /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct FontAlternative(pub u8);
 
     impl fmt::Display for FontAlternative {

@@ -140,7 +140,7 @@ fn main() {
 
     println!("\nRGB colors");
     {
-        print!  ("  custom forground:               "     );
+        print!  ("  custom foreground:              "     );
         print!  ("{}t", color::FgRgb(  0,   0,   0)       );
         print!  ("{}e", color::FgRgb(255,   0,   0)       );
         print!  ("{}r", color::FgRgb(255, 255,   0)       );

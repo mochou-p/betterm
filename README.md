@@ -4,7 +4,7 @@ how? the idea behind it is INCLUDE EVERYTHING ✨
 why? similar crates leave out helpful, common [ANSI codes](https://en.wikipedia.org/wiki/ANSI_escape_code) 😬  
 
 ## it is simple
-ANSI codes are just `const &'static str`,  
+most ANSI codes are just `const &'static str`,  
 and dynamic ones are structs that implement `std::fmt::Display`  
 (that also blanketly implements `std::string::ToString`)  
 
