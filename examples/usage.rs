@@ -202,13 +202,13 @@ fn main() {
         println!("{}{text}{}", style::UNDERLINE,                 style::UNSET_UNDERLINE    );
 
         print!  ("  double underlinee:              "                                      );
-        println!("{}{text}{}", style::DOUBLE_UNDERLINE,          style::UNSET_UNDERLINE    );
+        println!("{}{text}{}", style::UNDERLINE_DOUBLE,          style::UNSET_UNDERLINE    );
 
         print!  ("  slow blink:                     "                                      );
-        println!("{}{text}{}", style::SLOW_BLINK,                style::UNSET_BLINK        );
+        println!("{}{text}{}", style::BLINK_SLOW,                style::UNSET_BLINK        );
 
         print!  ("  fast blink:                     "                                      );
-        println!("{}{text}{}", style::FAST_BLINK,                style::UNSET_BLINK        );
+        println!("{}{text}{}", style::BLINK_FAST,                style::UNSET_BLINK        );
 
         print!  ("  invert:                         "                                      );
         println!("{}{text}{}", style::INVERT_COLORS,             style::UNSET_INVERT       );
@@ -266,7 +266,7 @@ fn main() {
             style::ITALIC,
             style::UNDERLINE,
             color::UnderlineRgb(255, 0, 0),
-            style::SLOW_BLINK,
+            style::BLINK_SLOW,
             style::STRIKETHROUGH,
             style::FONT_GOTHIC,
             style::SCRIPT_SUB,

@@ -991,25 +991,27 @@ pub mod cursor {
     use std::fmt;
 
     /// save the cursor position to restore it later
-    pub const    SAVE_POSITION:      &str = "\x1b[s";
+    pub const    SAVE_POSITION:               &str = "\x1b[s";
 
     /// restore the saved cursor position
-    pub const RESTORE_POSITION:      &str = "\x1b[u";
+    pub const RESTORE_POSITION:               &str = "\x1b[u";
 
     /// hide the cursor (it still exists and movement/typing works)
-    pub const HIDE:                  &str = "\x1b[?25l";
+    pub const HIDE:                           &str = "\x1b[?25l";
 
     /// show the cursor
-    pub const SHOW:                  &str = "\x1b[?25h";
+    pub const SHOW:                           &str = "\x1b[?25h";
 
-    pub const MOVE_UP_BY_ONE:        &str = "\x1b[1A";
-    pub const MOVE_DOWN_BY_ONE:      &str = "\x1b[1B";
-    pub const MOVE_RIGHT_BY_ONE:     &str = "\x1b[1C";
-    pub const MOVE_LEFT_BY_ONE:      &str = "\x1b[1D";
+    pub const MOVE_UP:                        &str = "\x1b[1A";
+    pub const MOVE_DOWN:                      &str = "\x1b[1B";
+    pub const MOVE_RIGHT:                     &str = "\x1b[1C";
+    pub const MOVE_LEFT:                      &str = "\x1b[1D";
 
-    pub const MOVE_TO_TOP_LEFT:      &str = "\x1b[1;1H";
+    pub const MOVE_TO_TOP_LEFT:               &str = "\x1b[1;1H";
 
-    pub const MOVE_TO_START_OF_LINE: &str = "\x1b[1G";
+    pub const MOVE_TO_START_OF_PREVIOUS_LINE: &str = "\x1b[1F";
+    pub const MOVE_TO_START_OF_CURRENT_LINE:  &str = "\x1b[1G";
+    pub const MOVE_TO_START_OF_NEXT_LINE:     &str = "\x1b[1E";
 
     /// move cursor up by the given number, it can scroll the terminal
     ///
@@ -1039,19 +1041,19 @@ pub mod cursor {
     /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
     #[derive(Clone, Copy, Debug)] pub struct MoveLeftBy                 (pub u16);
 
-    /// move cursor down by one, and to the start of the line
+    /// move cursor down by the given number, and to the start of the line
     ///
     /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
     /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
     /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
-    #[derive(Clone, Copy, Debug)] pub struct MoveToStartOfNextLine      (pub u16);
+    #[derive(Clone, Copy, Debug)] pub struct MoveToStartOfNextLineBy    (pub u16);
 
-    /// move cursor up by one, and to the start of the line
+    /// move cursor up by the given number, and to the start of the line
     ///
     /// it implements [Display](https://doc.rust-lang.org/std/fmt/trait.Display.html), so
     /// you can just print it, or convert it into a [String](https://doc.rust-lang.org/std/string/struct.String.html)
     /// with [.to_string()](https://doc.rust-lang.org/std/string/trait.ToString.html)
-    #[derive(Clone, Copy, Debug)] pub struct MoveToStartOfPreviousLine  (pub u16);
+    #[derive(Clone, Copy, Debug)] pub struct MoveToStartOfPreviousLineBy(pub u16);
 
     /// move cursor to a column of the given number
     ///
@@ -1112,14 +1114,14 @@ pub mod cursor {
         }
     }
 
-    impl fmt::Display for MoveToStartOfNextLine {
+    impl fmt::Display for MoveToStartOfNextLineBy {
         #[inline]
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "\x1b[{}E", self.0)
         }
     }
 
-    impl fmt::Display for MoveToStartOfPreviousLine {
+    impl fmt::Display for MoveToStartOfPreviousLineBy {
         #[inline]
         fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
             write!(f, "\x1b[{}F", self.0)
@@ -1214,9 +1216,9 @@ pub mod screen {
 pub mod scroll {
     use std::fmt;
 
-    pub const   UP_BY_ONE:  &str = "\x1b[1S";
+    pub const   UP:         &str = "\x1b[1S";
 
-    pub const DOWN_BY_ONE:  &str = "\x1b[1T";
+    pub const DOWN:         &str = "\x1b[1T";
 
     /// reset the effects of [SetRegionStartAndEndRow]
     pub const UNSET_REGION: &str = "\x1b[r";
