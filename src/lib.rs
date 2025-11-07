@@ -1002,6 +1002,11 @@ pub mod cursor {
     /// show the cursor
     pub const SHOW:                  &str = "\x1b[?25h";
 
+    pub const MOVE_UP_BY_ONE:        &str = "\x1b[1A";
+    pub const MOVE_DOWN_BY_ONE:      &str = "\x1b[1B";
+    pub const MOVE_RIGHT_BY_ONE:     &str = "\x1b[1C";
+    pub const MOVE_LEFT_BY_ONE:      &str = "\x1b[1D";
+
     pub const MOVE_TO_TOP_LEFT:      &str = "\x1b[1;1H";
 
     pub const MOVE_TO_START_OF_LINE: &str = "\x1b[1G";
