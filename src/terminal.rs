@@ -82,13 +82,8 @@ impl RawTerminal {
         String::from_utf8(bytes.to_vec()).unwrap()
     }
 
-    // NOTE: all my homies hate advanced ANSI escapes
-    // TODO: breaks when multiple events are read at one time
-    /// waits forever until something happens
-    pub fn blocking_event(&mut self) -> Event {
-        let string = self.read_event_to_string();
-
-        match string.as_str() {
+    fn keyboard_event(&mut self, string: &str) -> Option<KeyboardEvent> {
+        match string {
             "\u{1b}[200~" => {
                 let mut accumulator = String::new();
 
@@ -102,286 +97,434 @@ impl RawTerminal {
                     }
                 }
 
-                return Event::Pasted(accumulator);
+                Some(KeyboardEvent::Pasted(accumulator))
             },
 
-            "\u{7f}"          => { return Event::         Backspace; },
-            "\u{8}"           => { return Event::     CtrlBackspace; },
-            "\u{1b}\u{7f}"    => { return Event::      AltBackspace; },
-            "\u{1b}\u{8}"     => { return Event::  CtrlAltBackspace; },
+            "\u{7f}"          => Some(KeyboardEvent::         Backspace),
+            "\u{8}"           => Some(KeyboardEvent::     CtrlBackspace),
+            "\u{1b}\u{7f}"    => Some(KeyboardEvent::      AltBackspace),
+            "\u{1b}\u{8}"     => Some(KeyboardEvent::  CtrlAltBackspace),
 
-            "\u{1b}[2~"       => { return Event::            Insert; },
-            "\u{1b}[2;5~"     => { return Event::        CtrlInsert; },
-            "\u{1b}[2;3~"     => { return Event::         AltInsert; },
-            "\u{1b}[2;7~"     => { return Event::     CtrlAltInsert; },
-            "\u{1b}[2;6~"     => { return Event::   CtrlShiftInsert; },
-            "\u{1b}[2;4~"     => { return Event::    AltShiftInsert; },
-            "\u{1b}[2;8~"     => { return Event::CtrlAltShiftInsert; },
+            "\u{1b}[2~"       => Some(KeyboardEvent::            Insert),
+            "\u{1b}[2;5~"     => Some(KeyboardEvent::        CtrlInsert),
+            "\u{1b}[2;3~"     => Some(KeyboardEvent::         AltInsert),
+            "\u{1b}[2;7~"     => Some(KeyboardEvent::     CtrlAltInsert),
+            "\u{1b}[2;6~"     => Some(KeyboardEvent::   CtrlShiftInsert),
+            "\u{1b}[2;4~"     => Some(KeyboardEvent::    AltShiftInsert),
+            "\u{1b}[2;8~"     => Some(KeyboardEvent::CtrlAltShiftInsert),
 
-            "\u{1b}[I"        => { return Event::FocusGained       ; },
-            "\u{1b}[O"        => { return Event::FocusLost         ; },
+            "\u{1}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::A)),
+            "\u{2}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::B)),
+            "\u{3}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::C)),
+            "\u{4}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::D)),
+            "\u{5}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::E)),
+            "\u{6}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::F)),
+            "\u{7}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::G)),
+            "\u{b}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::K)),
+            "\u{c}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::L)),
+            "\u{e}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::N)),
+            "\u{f}"           => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::O)),
+            "\u{10}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::P)),
+            "\u{11}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::Q)),
+            "\u{12}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::R)),
+            "\u{13}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::S)),
+            "\u{14}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::T)),
+            "\u{15}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::U)),
+            "\u{16}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::V)),
+            "\u{17}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::W)),
+            "\u{18}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::X)),
+            "\u{19}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::Y)),
+            "\u{1a}"          => Some(KeyboardEvent::   CtrlChar (   CtrlableChar::Z)),
 
-            "\u{1}"           => { return Event::   CtrlChar (   CtrlableChar::A       ); },
-            "\u{2}"           => { return Event::   CtrlChar (   CtrlableChar::B       ); },
-            "\u{3}"           => { return Event::   CtrlChar (   CtrlableChar::C       ); },
-            "\u{4}"           => { return Event::   CtrlChar (   CtrlableChar::D       ); },
-            "\u{5}"           => { return Event::   CtrlChar (   CtrlableChar::E       ); },
-            "\u{6}"           => { return Event::   CtrlChar (   CtrlableChar::F       ); },
-            "\u{7}"           => { return Event::   CtrlChar (   CtrlableChar::G       ); },
-            "\u{b}"           => { return Event::   CtrlChar (   CtrlableChar::K       ); },
-            "\u{c}"           => { return Event::   CtrlChar (   CtrlableChar::L       ); },
-            "\u{e}"           => { return Event::   CtrlChar (   CtrlableChar::N       ); },
-            "\u{f}"           => { return Event::   CtrlChar (   CtrlableChar::O       ); },
-            "\u{10}"          => { return Event::   CtrlChar (   CtrlableChar::P       ); },
-            "\u{11}"          => { return Event::   CtrlChar (   CtrlableChar::Q       ); },
-            "\u{12}"          => { return Event::   CtrlChar (   CtrlableChar::R       ); },
-            "\u{13}"          => { return Event::   CtrlChar (   CtrlableChar::S       ); },
-            "\u{14}"          => { return Event::   CtrlChar (   CtrlableChar::T       ); },
-            "\u{15}"          => { return Event::   CtrlChar (   CtrlableChar::U       ); },
-            "\u{16}"          => { return Event::   CtrlChar (   CtrlableChar::V       ); },
-            "\u{17}"          => { return Event::   CtrlChar (   CtrlableChar::W       ); },
-            "\u{18}"          => { return Event::   CtrlChar (   CtrlableChar::X       ); },
-            "\u{19}"          => { return Event::   CtrlChar (   CtrlableChar::Y       ); },
-            "\u{1a}"          => { return Event::   CtrlChar (   CtrlableChar::Z       ); },
+            "\u{1b}\u{1}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::A)),
+            "\u{1b}\u{2}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::B)),
+            "\u{1b}\u{3}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::C)),
+            "\u{1b}\u{4}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::D)),
+            "\u{1b}\u{5}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::E)),
+            "\u{1b}\u{6}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::F)),
+            "\u{1b}\u{7}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::G)),
+            "\u{1b}\n"        => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::J)), // TODO: could be something else
+            "\u{1b}\u{b}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::K)),
+            "\u{1b}\u{c}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::L)),
+            "\u{1b}\u{e}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::N)),
+            "\u{1b}\u{f}"     => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::O)),
+            "\u{1b}\u{10}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::P)),
+            "\u{1b}\u{11}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::Q)),
+            "\u{1b}\u{12}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::R)),
+            "\u{1b}\u{13}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::S)),
+            "\u{1b}\u{14}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::T)),
+            "\u{1b}\u{15}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::U)),
+            "\u{1b}\u{16}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::V)),
+            "\u{1b}\u{17}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::W)),
+            "\u{1b}\u{18}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::X)),
+            "\u{1b}\u{19}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::Y)),
+            "\u{1b}\u{1a}"    => Some(KeyboardEvent::CtrlAltChar (CtrlAltableChar::Z)),
 
-            "\u{1b}\u{1}"     => { return Event::CtrlAltChar (CtrlAltableChar::A       ); },
-            "\u{1b}\u{2}"     => { return Event::CtrlAltChar (CtrlAltableChar::B       ); },
-            "\u{1b}\u{3}"     => { return Event::CtrlAltChar (CtrlAltableChar::C       ); },
-            "\u{1b}\u{4}"     => { return Event::CtrlAltChar (CtrlAltableChar::D       ); },
-            "\u{1b}\u{5}"     => { return Event::CtrlAltChar (CtrlAltableChar::E       ); },
-            "\u{1b}\u{6}"     => { return Event::CtrlAltChar (CtrlAltableChar::F       ); },
-            "\u{1b}\u{7}"     => { return Event::CtrlAltChar (CtrlAltableChar::G       ); },
-            "\u{1b}\n"        => { return Event::CtrlAltChar (CtrlAltableChar::J       ); }, // TODO: but it could be something else
-            "\u{1b}\u{b}"     => { return Event::CtrlAltChar (CtrlAltableChar::K       ); },
-            "\u{1b}\u{c}"     => { return Event::CtrlAltChar (CtrlAltableChar::L       ); },
-            "\u{1b}\u{e}"     => { return Event::CtrlAltChar (CtrlAltableChar::N       ); },
-            "\u{1b}\u{f}"     => { return Event::CtrlAltChar (CtrlAltableChar::O       ); },
-            "\u{1b}\u{10}"    => { return Event::CtrlAltChar (CtrlAltableChar::P       ); },
-            "\u{1b}\u{11}"    => { return Event::CtrlAltChar (CtrlAltableChar::Q       ); },
-            "\u{1b}\u{12}"    => { return Event::CtrlAltChar (CtrlAltableChar::R       ); },
-            "\u{1b}\u{13}"    => { return Event::CtrlAltChar (CtrlAltableChar::S       ); },
-            "\u{1b}\u{14}"    => { return Event::CtrlAltChar (CtrlAltableChar::T       ); },
-            "\u{1b}\u{15}"    => { return Event::CtrlAltChar (CtrlAltableChar::U       ); },
-            "\u{1b}\u{16}"    => { return Event::CtrlAltChar (CtrlAltableChar::V       ); },
-            "\u{1b}\u{17}"    => { return Event::CtrlAltChar (CtrlAltableChar::W       ); },
-            "\u{1b}\u{18}"    => { return Event::CtrlAltChar (CtrlAltableChar::X       ); },
-            "\u{1b}\u{19}"    => { return Event::CtrlAltChar (CtrlAltableChar::Y       ); },
-            "\u{1b}\u{1a}"    => { return Event::CtrlAltChar (CtrlAltableChar::Z       ); },
+            "\r" | "\n"       => Some(KeyboardEvent::NoModifiers (Key::Enter        )),
+            "\u{1b}"          => Some(KeyboardEvent::NoModifiers (Key::Escape       )),
+            "\u{1b}OP"        => Some(KeyboardEvent::NoModifiers (Key::F1           )),
+            "\u{1b}OQ"        => Some(KeyboardEvent::NoModifiers (Key::F2           )),
+            "\u{1b}OR"        => Some(KeyboardEvent::NoModifiers (Key::F3           )),
+            "\u{1b}OS"        => Some(KeyboardEvent::NoModifiers (Key::F4           )),
+            "\u{1b}[15~"      => Some(KeyboardEvent::NoModifiers (Key::F5           )),
+            "\u{1b}[17~"      => Some(KeyboardEvent::NoModifiers (Key::F6           )),
+            "\u{1b}[18~"      => Some(KeyboardEvent::NoModifiers (Key::F7           )),
+            "\u{1b}[19~"      => Some(KeyboardEvent::NoModifiers (Key::F8           )),
+            "\u{1b}[20~"      => Some(KeyboardEvent::NoModifiers (Key::F9           )),
+            "\u{1b}[21~"      => Some(KeyboardEvent::NoModifiers (Key::F10          )),
+            "\u{1b}[23~"      => Some(KeyboardEvent::NoModifiers (Key::F11          )),
+            "\u{1b}[24~"      => Some(KeyboardEvent::NoModifiers (Key::F12          )),
+            "\t"              => Some(KeyboardEvent::NoModifiers (Key::Tab          )),
+            "\u{1b}[3~"       => Some(KeyboardEvent::NoModifiers (Key::Delete       )),
+            "\u{1b}[H"        => Some(KeyboardEvent::NoModifiers (Key::Home         )),
+            "\u{1b}[F"        => Some(KeyboardEvent::NoModifiers (Key::End          )),
+            "\u{1b}[5~"       => Some(KeyboardEvent::NoModifiers (Key::PageUp       )),
+            "\u{1b}[6~"       => Some(KeyboardEvent::NoModifiers (Key::PageDown     )),
+            "\u{1b}[A"        => Some(KeyboardEvent::NoModifiers (Key::ArrowUp      )),
+            "\u{1b}[D"        => Some(KeyboardEvent::NoModifiers (Key::ArrowLeft    )),
+            "\u{1b}[B"        => Some(KeyboardEvent::NoModifiers (Key::ArrowDown    )),
+            "\u{1b}[C"        => Some(KeyboardEvent::NoModifiers (Key::ArrowRight   )),
 
-            "\r" | "\n"       => { return Event::NoModifiers (Eventee::Enter           ); },
-            "\u{1b}"          => { return Event::NoModifiers (Eventee::Escape          ); },
-            "\u{1b}OP"        => { return Event::NoModifiers (Eventee::F1              ); },
-            "\u{1b}OQ"        => { return Event::NoModifiers (Eventee::F2              ); },
-            "\u{1b}OR"        => { return Event::NoModifiers (Eventee::F3              ); },
-            "\u{1b}OS"        => { return Event::NoModifiers (Eventee::F4              ); },
-            "\u{1b}[15~"      => { return Event::NoModifiers (Eventee::F5              ); },
-            "\u{1b}[17~"      => { return Event::NoModifiers (Eventee::F6              ); },
-            "\u{1b}[18~"      => { return Event::NoModifiers (Eventee::F7              ); },
-            "\u{1b}[19~"      => { return Event::NoModifiers (Eventee::F8              ); },
-            "\u{1b}[20~"      => { return Event::NoModifiers (Eventee::F9              ); },
-            "\u{1b}[21~"      => { return Event::NoModifiers (Eventee::F10             ); },
-            "\u{1b}[23~"      => { return Event::NoModifiers (Eventee::F11             ); },
-            "\u{1b}[24~"      => { return Event::NoModifiers (Eventee::F12             ); },
-            "\t"              => { return Event::NoModifiers (Eventee::Tab             ); },
-            "\u{1b}[3~"       => { return Event::NoModifiers (Eventee::Delete          ); },
-            "\u{1b}[H"        => { return Event::NoModifiers (Eventee::Home            ); },
-            "\u{1b}[F"        => { return Event::NoModifiers (Eventee::End             ); },
-            "\u{1b}[5~"       => { return Event::NoModifiers (Eventee::PageUp          ); },
-            "\u{1b}[6~"       => { return Event::NoModifiers (Eventee::PageDown        ); },
-            "\u{1b}[A"        => { return Event::NoModifiers (Eventee::ArrowUp         ); },
-            "\u{1b}[D"        => { return Event::NoModifiers (Eventee::ArrowLeft       ); },
-            "\u{1b}[B"        => { return Event::NoModifiers (Eventee::ArrowDown       ); },
-            "\u{1b}[C"        => { return Event::NoModifiers (Eventee::ArrowRight      ); },
+            "\u{1b}[27;5;13~" => Some(KeyboardEvent::Ctrl        (Key::Enter        )),
+            "\u{1b}[27;5;27~" => Some(KeyboardEvent::Ctrl        (Key::Escape       )),
+            "\u{1b}[1;5P"     => Some(KeyboardEvent::Ctrl        (Key::F1           )),
+            "\u{1b}[1;5Q"     => Some(KeyboardEvent::Ctrl        (Key::F2           )),
+            "\u{1b}[1;5R"     => Some(KeyboardEvent::Ctrl        (Key::F3           )),
+            "\u{1b}[1;5S"     => Some(KeyboardEvent::Ctrl        (Key::F4           )),
+            "\u{1b}[15;5~"    => Some(KeyboardEvent::Ctrl        (Key::F5           )),
+            "\u{1b}[17;5~"    => Some(KeyboardEvent::Ctrl        (Key::F6           )),
+            "\u{1b}[18;5~"    => Some(KeyboardEvent::Ctrl        (Key::F7           )),
+            "\u{1b}[19;5~"    => Some(KeyboardEvent::Ctrl        (Key::F8           )),
+            "\u{1b}[20;5~"    => Some(KeyboardEvent::Ctrl        (Key::F9           )),
+            "\u{1b}[21;5~"    => Some(KeyboardEvent::Ctrl        (Key::F10          )),
+            "\u{1b}[23;5~"    => Some(KeyboardEvent::Ctrl        (Key::F11          )),
+            "\u{1b}[24;5~"    => Some(KeyboardEvent::Ctrl        (Key::F12          )),
+            "\u{1b}[27;5;9~"  => Some(KeyboardEvent::Ctrl        (Key::Tab          )),
+            "\u{1b}[3;5~"     => Some(KeyboardEvent::Ctrl        (Key::Delete       )),
+            "\u{1b}[1;5H"     => Some(KeyboardEvent::Ctrl        (Key::Home         )),
+            "\u{1b}[1;5F"     => Some(KeyboardEvent::Ctrl        (Key::End          )),
+            "\u{1b}[5;5~"     => Some(KeyboardEvent::Ctrl        (Key::PageUp       )),
+            "\u{1b}[6;5~"     => Some(KeyboardEvent::Ctrl        (Key::PageDown     )),
+            "\u{1b}[1;5A"     => Some(KeyboardEvent::Ctrl        (Key::ArrowUp      )),
+            "\u{1b}[1;5D"     => Some(KeyboardEvent::Ctrl        (Key::ArrowLeft    )),
+            "\u{1b}[1;5B"     => Some(KeyboardEvent::Ctrl        (Key::ArrowDown    )),
+            "\u{1b}[1;5C"     => Some(KeyboardEvent::Ctrl        (Key::ArrowRight   )),
 
-            "\u{1b}[27;5;13~" => { return Event::Ctrl        (Eventee::Enter           ); },
-            "\u{1b}[27;5;27~" => { return Event::Ctrl        (Eventee::Escape          ); },
-            "\u{1b}[1;5P"     => { return Event::Ctrl        (Eventee::F1              ); },
-            "\u{1b}[1;5Q"     => { return Event::Ctrl        (Eventee::F2              ); },
-            "\u{1b}[1;5R"     => { return Event::Ctrl        (Eventee::F3              ); },
-            "\u{1b}[1;5S"     => { return Event::Ctrl        (Eventee::F4              ); },
-            "\u{1b}[15;5~"    => { return Event::Ctrl        (Eventee::F5              ); },
-            "\u{1b}[17;5~"    => { return Event::Ctrl        (Eventee::F6              ); },
-            "\u{1b}[18;5~"    => { return Event::Ctrl        (Eventee::F7              ); },
-            "\u{1b}[19;5~"    => { return Event::Ctrl        (Eventee::F8              ); },
-            "\u{1b}[20;5~"    => { return Event::Ctrl        (Eventee::F9              ); },
-            "\u{1b}[21;5~"    => { return Event::Ctrl        (Eventee::F10             ); },
-            "\u{1b}[23;5~"    => { return Event::Ctrl        (Eventee::F11             ); },
-            "\u{1b}[24;5~"    => { return Event::Ctrl        (Eventee::F12             ); },
-            "\u{1b}[27;5;9~"  => { return Event::Ctrl        (Eventee::Tab             ); },
-            "\u{1b}[3;5~"     => { return Event::Ctrl        (Eventee::Delete          ); },
-            "\u{1b}[1;5H"     => { return Event::Ctrl        (Eventee::Home            ); },
-            "\u{1b}[1;5F"     => { return Event::Ctrl        (Eventee::End             ); },
-            "\u{1b}[5;5~"     => { return Event::Ctrl        (Eventee::PageUp          ); },
-            "\u{1b}[6;5~"     => { return Event::Ctrl        (Eventee::PageDown        ); },
-            "\u{1b}[1;5A"     => { return Event::Ctrl        (Eventee::ArrowUp         ); },
-            "\u{1b}[1;5D"     => { return Event::Ctrl        (Eventee::ArrowLeft       ); },
-            "\u{1b}[1;5B"     => { return Event::Ctrl        (Eventee::ArrowDown       ); },
-            "\u{1b}[1;5C"     => { return Event::Ctrl        (Eventee::ArrowRight      ); },
+            "\u{1b}\r"        => Some(KeyboardEvent::Alt         (Key::Enter        )),
+            "\u{1b}\u{1b}"    => Some(KeyboardEvent::Alt         (Key::Escape       )),
+            "\u{1b}[1;3P"     => Some(KeyboardEvent::Alt         (Key::F1           )),
+            "\u{1b}[1;3Q"     => Some(KeyboardEvent::Alt         (Key::F2           )),
+            "\u{1b}[1;3R"     => Some(KeyboardEvent::Alt         (Key::F3           )),
+            "\u{1b}[1;3S"     => Some(KeyboardEvent::Alt         (Key::F4           )),
+            "\u{1b}[15;3~"    => Some(KeyboardEvent::Alt         (Key::F5           )),
+            "\u{1b}[17;3~"    => Some(KeyboardEvent::Alt         (Key::F6           )),
+            "\u{1b}[18;3~"    => Some(KeyboardEvent::Alt         (Key::F7           )),
+            "\u{1b}[19;3~"    => Some(KeyboardEvent::Alt         (Key::F8           )),
+            "\u{1b}[20;3~"    => Some(KeyboardEvent::Alt         (Key::F9           )),
+            "\u{1b}[21;3~"    => Some(KeyboardEvent::Alt         (Key::F10          )),
+            "\u{1b}[23;3~"    => Some(KeyboardEvent::Alt         (Key::F11          )),
+            "\u{1b}[24;3~"    => Some(KeyboardEvent::Alt         (Key::F12          )),
+            "\u{1b}\t"        => Some(KeyboardEvent::Alt         (Key::Tab          )),
+            "\u{1b}[3;3~"     => Some(KeyboardEvent::Alt         (Key::Delete       )),
+            "\u{1b}[1;3H"     => Some(KeyboardEvent::Alt         (Key::Home         )),
+            "\u{1b}[1;3F"     => Some(KeyboardEvent::Alt         (Key::End          )),
+            "\u{1b}[5;3~"     => Some(KeyboardEvent::Alt         (Key::PageUp       )),
+            "\u{1b}[6;3~"     => Some(KeyboardEvent::Alt         (Key::PageDown     )),
+            "\u{1b}[1;3A"     => Some(KeyboardEvent::Alt         (Key::ArrowUp      )),
+            "\u{1b}[1;3D"     => Some(KeyboardEvent::Alt         (Key::ArrowLeft    )),
+            "\u{1b}[1;3B"     => Some(KeyboardEvent::Alt         (Key::ArrowDown    )),
+            "\u{1b}[1;3C"     => Some(KeyboardEvent::Alt         (Key::ArrowRight   )),
 
-            "\u{1b}\r"        => { return Event::Alt         (Eventee::Enter           ); },
-            "\u{1b}\u{1b}"    => { return Event::Alt         (Eventee::Escape          ); },
-            "\u{1b}[1;3P"     => { return Event::Alt         (Eventee::F1              ); },
-            "\u{1b}[1;3Q"     => { return Event::Alt         (Eventee::F2              ); },
-            "\u{1b}[1;3R"     => { return Event::Alt         (Eventee::F3              ); },
-            "\u{1b}[1;3S"     => { return Event::Alt         (Eventee::F4              ); },
-            "\u{1b}[15;3~"    => { return Event::Alt         (Eventee::F5              ); },
-            "\u{1b}[17;3~"    => { return Event::Alt         (Eventee::F6              ); },
-            "\u{1b}[18;3~"    => { return Event::Alt         (Eventee::F7              ); },
-            "\u{1b}[19;3~"    => { return Event::Alt         (Eventee::F8              ); },
-            "\u{1b}[20;3~"    => { return Event::Alt         (Eventee::F9              ); },
-            "\u{1b}[21;3~"    => { return Event::Alt         (Eventee::F10             ); },
-            "\u{1b}[23;3~"    => { return Event::Alt         (Eventee::F11             ); },
-            "\u{1b}[24;3~"    => { return Event::Alt         (Eventee::F12             ); },
-            "\u{1b}\t"        => { return Event::Alt         (Eventee::Tab             ); },
-            "\u{1b}[3;3~"     => { return Event::Alt         (Eventee::Delete          ); },
-            "\u{1b}[1;3H"     => { return Event::Alt         (Eventee::Home            ); },
-            "\u{1b}[1;3F"     => { return Event::Alt         (Eventee::End             ); },
-            "\u{1b}[5;3~"     => { return Event::Alt         (Eventee::PageUp          ); },
-            "\u{1b}[6;3~"     => { return Event::Alt         (Eventee::PageDown        ); },
-            "\u{1b}[1;3A"     => { return Event::Alt         (Eventee::ArrowUp         ); },
-            "\u{1b}[1;3D"     => { return Event::Alt         (Eventee::ArrowLeft       ); },
-            "\u{1b}[1;3B"     => { return Event::Alt         (Eventee::ArrowDown       ); },
-            "\u{1b}[1;3C"     => { return Event::Alt         (Eventee::ArrowRight      ); },
+            "\u{1b}[27;2;13~" => Some(KeyboardEvent::Shift       (Key::Enter        )),
+            "\u{1b}[27;2;27~" => Some(KeyboardEvent::Shift       (Key::Escape       )),
+            "\u{1b}[1;2P"     => Some(KeyboardEvent::Shift       (Key::F1           )),
+            "\u{1b}[1;2Q"     => Some(KeyboardEvent::Shift       (Key::F2           )),
+            "\u{1b}[1;2R"     => Some(KeyboardEvent::Shift       (Key::F3           )),
+            "\u{1b}[1;2S"     => Some(KeyboardEvent::Shift       (Key::F4           )),
+            "\u{1b}[15;2~"    => Some(KeyboardEvent::Shift       (Key::F5           )),
+            "\u{1b}[17;2~"    => Some(KeyboardEvent::Shift       (Key::F6           )),
+            "\u{1b}[18;2~"    => Some(KeyboardEvent::Shift       (Key::F7           )),
+            "\u{1b}[19;2~"    => Some(KeyboardEvent::Shift       (Key::F8           )),
+            "\u{1b}[20;2~"    => Some(KeyboardEvent::Shift       (Key::F9           )),
+            "\u{1b}[21;2~"    => Some(KeyboardEvent::Shift       (Key::F10          )),
+            "\u{1b}[23;2~"    => Some(KeyboardEvent::Shift       (Key::F11          )),
+            "\u{1b}[24;2~"    => Some(KeyboardEvent::Shift       (Key::F12          )),
+            "\u{1b}[Z"        => Some(KeyboardEvent::Shift       (Key::Tab          )),
+            "\u{1b}[3;2~"     => Some(KeyboardEvent::Shift       (Key::Delete       )),
+            "\u{1b}[1;2H"     => Some(KeyboardEvent::Shift       (Key::Home         )),
+            "\u{1b}[1;2F"     => Some(KeyboardEvent::Shift       (Key::End          )),
+            "\u{1b}[5;2~"     => Some(KeyboardEvent::Shift       (Key::PageUp       )),
+            "\u{1b}[6;2~"     => Some(KeyboardEvent::Shift       (Key::PageDown     )),
+            "\u{1b}[1;2A"     => Some(KeyboardEvent::Shift       (Key::ArrowUp      )),
+            "\u{1b}[1;2D"     => Some(KeyboardEvent::Shift       (Key::ArrowLeft    )),
+            "\u{1b}[1;2B"     => Some(KeyboardEvent::Shift       (Key::ArrowDown    )),
+            "\u{1b}[1;2C"     => Some(KeyboardEvent::Shift       (Key::ArrowRight   )),
 
-            "\u{1b}[27;2;13~" => { return Event::Shift       (Eventee::Enter           ); },
-            "\u{1b}[27;2;27~" => { return Event::Shift       (Eventee::Escape          ); },
-            "\u{1b}[1;2P"     => { return Event::Shift       (Eventee::F1              ); },
-            "\u{1b}[1;2Q"     => { return Event::Shift       (Eventee::F2              ); },
-            "\u{1b}[1;2R"     => { return Event::Shift       (Eventee::F3              ); },
-            "\u{1b}[1;2S"     => { return Event::Shift       (Eventee::F4              ); },
-            "\u{1b}[15;2~"    => { return Event::Shift       (Eventee::F5              ); },
-            "\u{1b}[17;2~"    => { return Event::Shift       (Eventee::F6              ); },
-            "\u{1b}[18;2~"    => { return Event::Shift       (Eventee::F7              ); },
-            "\u{1b}[19;2~"    => { return Event::Shift       (Eventee::F8              ); },
-            "\u{1b}[20;2~"    => { return Event::Shift       (Eventee::F9              ); },
-            "\u{1b}[21;2~"    => { return Event::Shift       (Eventee::F10             ); },
-            "\u{1b}[23;2~"    => { return Event::Shift       (Eventee::F11             ); },
-            "\u{1b}[24;2~"    => { return Event::Shift       (Eventee::F12             ); },
-            "\u{1b}[Z"        => { return Event::Shift       (Eventee::Tab             ); },
-            "\u{1b}[3;2~"     => { return Event::Shift       (Eventee::Delete          ); },
-            "\u{1b}[1;2H"     => { return Event::Shift       (Eventee::Home            ); },
-            "\u{1b}[1;2F"     => { return Event::Shift       (Eventee::End             ); },
-            "\u{1b}[5;2~"     => { return Event::Shift       (Eventee::PageUp          ); },
-            "\u{1b}[6;2~"     => { return Event::Shift       (Eventee::PageDown        ); },
-            "\u{1b}[1;2A"     => { return Event::Shift       (Eventee::ArrowUp         ); },
-            "\u{1b}[1;2D"     => { return Event::Shift       (Eventee::ArrowLeft       ); },
-            "\u{1b}[1;2B"     => { return Event::Shift       (Eventee::ArrowDown       ); },
-            "\u{1b}[1;2C"     => { return Event::Shift       (Eventee::ArrowRight      ); },
+            "\u{1b}[27;7;13~" => Some(KeyboardEvent::CtrlAlt     (Key::Enter        )),
+            "\u{1b}[27;7;27~" => Some(KeyboardEvent::CtrlAlt     (Key::Escape       )),
+            "\u{1b}[1;7P"     => Some(KeyboardEvent::CtrlAlt     (Key::F1           )), // TTY1  lol
+            "\u{1b}[1;7Q"     => Some(KeyboardEvent::CtrlAlt     (Key::F2           )), // TTY2  lol
+            "\u{1b}[1;7R"     => Some(KeyboardEvent::CtrlAlt     (Key::F3           )), // TTY3  lol
+            "\u{1b}[1;7S"     => Some(KeyboardEvent::CtrlAlt     (Key::F4           )), // TTY4  lol
+            "\u{1b}[15;7~"    => Some(KeyboardEvent::CtrlAlt     (Key::F5           )), // TTY5  lol
+            "\u{1b}[17;7~"    => Some(KeyboardEvent::CtrlAlt     (Key::F6           )), // TTY6  lol
+            "\u{1b}[18;7~"    => Some(KeyboardEvent::CtrlAlt     (Key::F7           )), // TTY7  lol
+            "\u{1b}[19;7~"    => Some(KeyboardEvent::CtrlAlt     (Key::F8           )), // TTY8  lol
+            "\u{1b}[20;7~"    => Some(KeyboardEvent::CtrlAlt     (Key::F9           )), // TTY9  lol
+            "\u{1b}[21;7~"    => Some(KeyboardEvent::CtrlAlt     (Key::F10          )), // TTY10 lol
+            "\u{1b}[23;7~"    => Some(KeyboardEvent::CtrlAlt     (Key::F11          )), // TTY11 lol
+            "\u{1b}[24;7~"    => Some(KeyboardEvent::CtrlAlt     (Key::F12          )), // TTY12 lol
+            "\u{1b}[27;7;9~"  => Some(KeyboardEvent::CtrlAlt     (Key::Tab          )),
+            "\u{1b}[3;7~"     => Some(KeyboardEvent::CtrlAlt     (Key::Delete       )),
+            "\u{1b}[1;7H"     => Some(KeyboardEvent::CtrlAlt     (Key::Home         )),
+            "\u{1b}[1;7F"     => Some(KeyboardEvent::CtrlAlt     (Key::End          )),
+            "\u{1b}[5;7~"     => Some(KeyboardEvent::CtrlAlt     (Key::PageUp       )),
+            "\u{1b}[6;7~"     => Some(KeyboardEvent::CtrlAlt     (Key::PageDown     )),
+            "\u{1b}[1;7A"     => Some(KeyboardEvent::CtrlAlt     (Key::ArrowUp      )),
+            "\u{1b}[1;7D"     => Some(KeyboardEvent::CtrlAlt     (Key::ArrowLeft    )),
+            "\u{1b}[1;7B"     => Some(KeyboardEvent::CtrlAlt     (Key::ArrowDown    )),
+            "\u{1b}[1;7C"     => Some(KeyboardEvent::CtrlAlt     (Key::ArrowRight   )),
 
-            "\u{1b}[27;7;13~" => { return Event::CtrlAlt     (Eventee::Enter           ); },
-            "\u{1b}[27;7;27~" => { return Event::CtrlAlt     (Eventee::Escape          ); },
-            "\u{1b}[1;7P"     => { return Event::CtrlAlt     (Eventee::F1              ); }, // TTY1  lol
-            "\u{1b}[1;7Q"     => { return Event::CtrlAlt     (Eventee::F2              ); }, // TTY2  lol
-            "\u{1b}[1;7R"     => { return Event::CtrlAlt     (Eventee::F3              ); }, // TTY3  lol
-            "\u{1b}[1;7S"     => { return Event::CtrlAlt     (Eventee::F4              ); }, // TTY4  lol
-            "\u{1b}[15;7~"    => { return Event::CtrlAlt     (Eventee::F5              ); }, // TTY5  lol
-            "\u{1b}[17;7~"    => { return Event::CtrlAlt     (Eventee::F6              ); }, // TTY6  lol
-            "\u{1b}[18;7~"    => { return Event::CtrlAlt     (Eventee::F7              ); }, // TTY7  lol
-            "\u{1b}[19;7~"    => { return Event::CtrlAlt     (Eventee::F8              ); }, // TTY8  lol
-            "\u{1b}[20;7~"    => { return Event::CtrlAlt     (Eventee::F9              ); }, // TTY9  lol
-            "\u{1b}[21;7~"    => { return Event::CtrlAlt     (Eventee::F10             ); }, // TTY10 lol
-            "\u{1b}[23;7~"    => { return Event::CtrlAlt     (Eventee::F11             ); }, // TTY11 lol
-            "\u{1b}[24;7~"    => { return Event::CtrlAlt     (Eventee::F12             ); }, // TTY12 lol
-            "\u{1b}[27;7;9~"  => { return Event::CtrlAlt     (Eventee::Tab             ); },
-            "\u{1b}[3;7~"     => { return Event::CtrlAlt     (Eventee::Delete          ); },
-            "\u{1b}[1;7H"     => { return Event::CtrlAlt     (Eventee::Home            ); },
-            "\u{1b}[1;7F"     => { return Event::CtrlAlt     (Eventee::End             ); },
-            "\u{1b}[5;7~"     => { return Event::CtrlAlt     (Eventee::PageUp          ); },
-            "\u{1b}[6;7~"     => { return Event::CtrlAlt     (Eventee::PageDown        ); },
-            "\u{1b}[1;7A"     => { return Event::CtrlAlt     (Eventee::ArrowUp         ); },
-            "\u{1b}[1;7D"     => { return Event::CtrlAlt     (Eventee::ArrowLeft       ); },
-            "\u{1b}[1;7B"     => { return Event::CtrlAlt     (Eventee::ArrowDown       ); },
-            "\u{1b}[1;7C"     => { return Event::CtrlAlt     (Eventee::ArrowRight      ); },
+            "\u{1b}[27;6;13~" => Some(KeyboardEvent::CtrlShift   (Key::Enter        )),
+            "\u{1b}[27;6;27~" => Some(KeyboardEvent::CtrlShift   (Key::Escape       )),
+            "\u{1b}[1;6P"     => Some(KeyboardEvent::CtrlShift   (Key::F1           )),
+            "\u{1b}[1;6Q"     => Some(KeyboardEvent::CtrlShift   (Key::F2           )),
+            "\u{1b}[1;6R"     => Some(KeyboardEvent::CtrlShift   (Key::F3           )),
+            "\u{1b}[1;6S"     => Some(KeyboardEvent::CtrlShift   (Key::F4           )),
+            "\u{1b}[15;6~"    => Some(KeyboardEvent::CtrlShift   (Key::F5           )),
+            "\u{1b}[17;6~"    => Some(KeyboardEvent::CtrlShift   (Key::F6           )),
+            "\u{1b}[18;6~"    => Some(KeyboardEvent::CtrlShift   (Key::F7           )),
+            "\u{1b}[19;6~"    => Some(KeyboardEvent::CtrlShift   (Key::F8           )),
+            "\u{1b}[20;6~"    => Some(KeyboardEvent::CtrlShift   (Key::F9           )),
+            "\u{1b}[21;6~"    => Some(KeyboardEvent::CtrlShift   (Key::F10          )),
+            "\u{1b}[23;6~"    => Some(KeyboardEvent::CtrlShift   (Key::F11          )),
+            "\u{1b}[24;6~"    => Some(KeyboardEvent::CtrlShift   (Key::F12          )),
+            "\u{1b}[27;6;9~"  => Some(KeyboardEvent::CtrlShift   (Key::Tab          )),
+            "\u{1b}[3;6~"     => Some(KeyboardEvent::CtrlShift   (Key::Delete       )),
+            "\u{1b}[1;6H"     => Some(KeyboardEvent::CtrlShift   (Key::Home         )),
+            "\u{1b}[1;6F"     => Some(KeyboardEvent::CtrlShift   (Key::End          )),
+            "\u{1b}[5;6~"     => Some(KeyboardEvent::CtrlShift   (Key::PageUp       )),
+            "\u{1b}[6;6~"     => Some(KeyboardEvent::CtrlShift   (Key::PageDown     )),
+            "\u{1b}[1;6A"     => Some(KeyboardEvent::CtrlShift   (Key::ArrowUp      )),
+            "\u{1b}[1;6D"     => Some(KeyboardEvent::CtrlShift   (Key::ArrowLeft    )),
+            "\u{1b}[1;6B"     => Some(KeyboardEvent::CtrlShift   (Key::ArrowDown    )),
+            "\u{1b}[1;6C"     => Some(KeyboardEvent::CtrlShift   (Key::ArrowRight   )),
 
-            "\u{1b}[27;6;13~" => { return Event::CtrlShift   (Eventee::Enter           ); },
-            "\u{1b}[27;6;27~" => { return Event::CtrlShift   (Eventee::Escape          ); },
-            "\u{1b}[1;6P"     => { return Event::CtrlShift   (Eventee::F1              ); },
-            "\u{1b}[1;6Q"     => { return Event::CtrlShift   (Eventee::F2              ); },
-            "\u{1b}[1;6R"     => { return Event::CtrlShift   (Eventee::F3              ); },
-            "\u{1b}[1;6S"     => { return Event::CtrlShift   (Eventee::F4              ); },
-            "\u{1b}[15;6~"    => { return Event::CtrlShift   (Eventee::F5              ); },
-            "\u{1b}[17;6~"    => { return Event::CtrlShift   (Eventee::F6              ); },
-            "\u{1b}[18;6~"    => { return Event::CtrlShift   (Eventee::F7              ); },
-            "\u{1b}[19;6~"    => { return Event::CtrlShift   (Eventee::F8              ); },
-            "\u{1b}[20;6~"    => { return Event::CtrlShift   (Eventee::F9              ); },
-            "\u{1b}[21;6~"    => { return Event::CtrlShift   (Eventee::F10             ); },
-            "\u{1b}[23;6~"    => { return Event::CtrlShift   (Eventee::F11             ); },
-            "\u{1b}[24;6~"    => { return Event::CtrlShift   (Eventee::F12             ); },
-            "\u{1b}[27;6;9~"  => { return Event::CtrlShift   (Eventee::Tab             ); },
-            "\u{1b}[3;6~"     => { return Event::CtrlShift   (Eventee::Delete          ); },
-            "\u{1b}[1;6H"     => { return Event::CtrlShift   (Eventee::Home            ); },
-            "\u{1b}[1;6F"     => { return Event::CtrlShift   (Eventee::End             ); },
-            "\u{1b}[5;6~"     => { return Event::CtrlShift   (Eventee::PageUp          ); },
-            "\u{1b}[6;6~"     => { return Event::CtrlShift   (Eventee::PageDown        ); },
-            "\u{1b}[1;6A"     => { return Event::CtrlShift   (Eventee::ArrowUp         ); },
-            "\u{1b}[1;6D"     => { return Event::CtrlShift   (Eventee::ArrowLeft       ); },
-            "\u{1b}[1;6B"     => { return Event::CtrlShift   (Eventee::ArrowDown       ); },
-            "\u{1b}[1;6C"     => { return Event::CtrlShift   (Eventee::ArrowRight      ); },
+            "\u{1b}[27;4;13~" => Some(KeyboardEvent::AltShift    (Key::Enter        )),
+            "\u{1b}[27;4;27~" => Some(KeyboardEvent::AltShift    (Key::Escape       )),
+            "\u{1b}[1;4P"     => Some(KeyboardEvent::AltShift    (Key::F1           )),
+            "\u{1b}[1;4Q"     => Some(KeyboardEvent::AltShift    (Key::F2           )),
+            "\u{1b}[1;4R"     => Some(KeyboardEvent::AltShift    (Key::F3           )),
+            "\u{1b}[1;4S"     => Some(KeyboardEvent::AltShift    (Key::F4           )),
+            "\u{1b}[15;4~"    => Some(KeyboardEvent::AltShift    (Key::F5           )),
+            "\u{1b}[17;4~"    => Some(KeyboardEvent::AltShift    (Key::F6           )),
+            "\u{1b}[18;4~"    => Some(KeyboardEvent::AltShift    (Key::F7           )),
+            "\u{1b}[19;4~"    => Some(KeyboardEvent::AltShift    (Key::F8           )),
+            "\u{1b}[20;4~"    => Some(KeyboardEvent::AltShift    (Key::F9           )),
+            "\u{1b}[21;4~"    => Some(KeyboardEvent::AltShift    (Key::F10          )),
+            "\u{1b}[23;4~"    => Some(KeyboardEvent::AltShift    (Key::F11          )),
+            "\u{1b}[24;4~"    => Some(KeyboardEvent::AltShift    (Key::F12          )),
+            "\u{1b}[27;4;9~"  => Some(KeyboardEvent::AltShift    (Key::Tab          )),
+            "\u{1b}[3;4~"     => Some(KeyboardEvent::AltShift    (Key::Delete       )),
+            "\u{1b}[1;4H"     => Some(KeyboardEvent::AltShift    (Key::Home         )),
+            "\u{1b}[1;4F"     => Some(KeyboardEvent::AltShift    (Key::End          )),
+            "\u{1b}[5;4~"     => Some(KeyboardEvent::AltShift    (Key::PageUp       )),
+            "\u{1b}[6;4~"     => Some(KeyboardEvent::AltShift    (Key::PageDown     )),
+            "\u{1b}[1;4A"     => Some(KeyboardEvent::AltShift    (Key::ArrowUp      )),
+            "\u{1b}[1;4D"     => Some(KeyboardEvent::AltShift    (Key::ArrowLeft    )),
+            "\u{1b}[1;4B"     => Some(KeyboardEvent::AltShift    (Key::ArrowDown    )),
+            "\u{1b}[1;4C"     => Some(KeyboardEvent::AltShift    (Key::ArrowRight   )),
 
-            "\u{1b}[27;4;13~" => { return Event::AltShift    (Eventee::Enter           ); },
-            "\u{1b}[27;4;27~" => { return Event::AltShift    (Eventee::Escape          ); },
-            "\u{1b}[1;4P"     => { return Event::AltShift    (Eventee::F1              ); },
-            "\u{1b}[1;4Q"     => { return Event::AltShift    (Eventee::F2              ); },
-            "\u{1b}[1;4R"     => { return Event::AltShift    (Eventee::F3              ); },
-            "\u{1b}[1;4S"     => { return Event::AltShift    (Eventee::F4              ); },
-            "\u{1b}[15;4~"    => { return Event::AltShift    (Eventee::F5              ); },
-            "\u{1b}[17;4~"    => { return Event::AltShift    (Eventee::F6              ); },
-            "\u{1b}[18;4~"    => { return Event::AltShift    (Eventee::F7              ); },
-            "\u{1b}[19;4~"    => { return Event::AltShift    (Eventee::F8              ); },
-            "\u{1b}[20;4~"    => { return Event::AltShift    (Eventee::F9              ); },
-            "\u{1b}[21;4~"    => { return Event::AltShift    (Eventee::F10             ); },
-            "\u{1b}[23;4~"    => { return Event::AltShift    (Eventee::F11             ); },
-            "\u{1b}[24;4~"    => { return Event::AltShift    (Eventee::F12             ); },
-            "\u{1b}[27;4;9~"  => { return Event::AltShift    (Eventee::Tab             ); },
-            "\u{1b}[3;4~"     => { return Event::AltShift    (Eventee::Delete          ); },
-            "\u{1b}[1;4H"     => { return Event::AltShift    (Eventee::Home            ); },
-            "\u{1b}[1;4F"     => { return Event::AltShift    (Eventee::End             ); },
-            "\u{1b}[5;4~"     => { return Event::AltShift    (Eventee::PageUp          ); },
-            "\u{1b}[6;4~"     => { return Event::AltShift    (Eventee::PageDown        ); },
-            "\u{1b}[1;4A"     => { return Event::AltShift    (Eventee::ArrowUp         ); },
-            "\u{1b}[1;4D"     => { return Event::AltShift    (Eventee::ArrowLeft       ); },
-            "\u{1b}[1;4B"     => { return Event::AltShift    (Eventee::ArrowDown       ); },
-            "\u{1b}[1;4C"     => { return Event::AltShift    (Eventee::ArrowRight      ); },
+            "\u{1b}[27;8;13~" => Some(KeyboardEvent::CtrlAltShift(Key::Enter        )),
+            "\u{1b}[27;8;27~" => Some(KeyboardEvent::CtrlAltShift(Key::Escape       )),
+            "\u{1b}[1;8P"     => Some(KeyboardEvent::CtrlAltShift(Key::F1           )),
+            "\u{1b}[1;8Q"     => Some(KeyboardEvent::CtrlAltShift(Key::F2           )),
+            "\u{1b}[1;8R"     => Some(KeyboardEvent::CtrlAltShift(Key::F3           )),
+            "\u{1b}[1;8S"     => Some(KeyboardEvent::CtrlAltShift(Key::F4           )),
+            "\u{1b}[15;8~"    => Some(KeyboardEvent::CtrlAltShift(Key::F5           )),
+            "\u{1b}[17;8~"    => Some(KeyboardEvent::CtrlAltShift(Key::F6           )),
+            "\u{1b}[18;8~"    => Some(KeyboardEvent::CtrlAltShift(Key::F7           )),
+            "\u{1b}[19;8~"    => Some(KeyboardEvent::CtrlAltShift(Key::F8           )),
+            "\u{1b}[20;8~"    => Some(KeyboardEvent::CtrlAltShift(Key::F9           )),
+            "\u{1b}[21;8~"    => Some(KeyboardEvent::CtrlAltShift(Key::F10          )),
+            "\u{1b}[23;8~"    => Some(KeyboardEvent::CtrlAltShift(Key::F11          )),
+            "\u{1b}[24;8~"    => Some(KeyboardEvent::CtrlAltShift(Key::F12          )),
+            "\u{1b}[27;8;9~"  => Some(KeyboardEvent::CtrlAltShift(Key::Tab          )),
+            "\u{1b}[3;8~"     => Some(KeyboardEvent::CtrlAltShift(Key::Delete       )),
+            "\u{1b}[1;8H"     => Some(KeyboardEvent::CtrlAltShift(Key::Home         )),
+            "\u{1b}[1;8F"     => Some(KeyboardEvent::CtrlAltShift(Key::End          )),
+            "\u{1b}[5;8~"     => Some(KeyboardEvent::CtrlAltShift(Key::PageUp       )),
+            "\u{1b}[6;8~"     => Some(KeyboardEvent::CtrlAltShift(Key::PageDown     )),
+            "\u{1b}[1;8A"     => Some(KeyboardEvent::CtrlAltShift(Key::ArrowUp      )),
+            "\u{1b}[1;8D"     => Some(KeyboardEvent::CtrlAltShift(Key::ArrowLeft    )),
+            "\u{1b}[1;8B"     => Some(KeyboardEvent::CtrlAltShift(Key::ArrowDown    )),
+            "\u{1b}[1;8C"     => Some(KeyboardEvent::CtrlAltShift(Key::ArrowRight   )),
 
-            "\u{1b}[27;8;13~" => { return Event::CtrlAltShift(Eventee::Enter           ); },
-            "\u{1b}[27;8;27~" => { return Event::CtrlAltShift(Eventee::Escape          ); },
-            "\u{1b}[1;8P"     => { return Event::CtrlAltShift(Eventee::F1              ); },
-            "\u{1b}[1;8Q"     => { return Event::CtrlAltShift(Eventee::F2              ); },
-            "\u{1b}[1;8R"     => { return Event::CtrlAltShift(Eventee::F3              ); },
-            "\u{1b}[1;8S"     => { return Event::CtrlAltShift(Eventee::F4              ); },
-            "\u{1b}[15;8~"    => { return Event::CtrlAltShift(Eventee::F5              ); },
-            "\u{1b}[17;8~"    => { return Event::CtrlAltShift(Eventee::F6              ); },
-            "\u{1b}[18;8~"    => { return Event::CtrlAltShift(Eventee::F7              ); },
-            "\u{1b}[19;8~"    => { return Event::CtrlAltShift(Eventee::F8              ); },
-            "\u{1b}[20;8~"    => { return Event::CtrlAltShift(Eventee::F9              ); },
-            "\u{1b}[21;8~"    => { return Event::CtrlAltShift(Eventee::F10             ); },
-            "\u{1b}[23;8~"    => { return Event::CtrlAltShift(Eventee::F11             ); },
-            "\u{1b}[24;8~"    => { return Event::CtrlAltShift(Eventee::F12             ); },
-            "\u{1b}[27;8;9~"  => { return Event::CtrlAltShift(Eventee::Tab             ); },
-            "\u{1b}[3;8~"     => { return Event::CtrlAltShift(Eventee::Delete          ); },
-            "\u{1b}[1;8H"     => { return Event::CtrlAltShift(Eventee::Home            ); },
-            "\u{1b}[1;8F"     => { return Event::CtrlAltShift(Eventee::End             ); },
-            "\u{1b}[5;8~"     => { return Event::CtrlAltShift(Eventee::PageUp          ); },
-            "\u{1b}[6;8~"     => { return Event::CtrlAltShift(Eventee::PageDown        ); },
-            "\u{1b}[1;8A"     => { return Event::CtrlAltShift(Eventee::ArrowUp         ); },
-            "\u{1b}[1;8D"     => { return Event::CtrlAltShift(Eventee::ArrowLeft       ); },
-            "\u{1b}[1;8B"     => { return Event::CtrlAltShift(Eventee::ArrowDown       ); },
-            "\u{1b}[1;8C"     => { return Event::CtrlAltShift(Eventee::ArrowRight      ); },
-
-            _                 => ()
+            _                 => None
         }
+    }
 
-        match string.chars().count() {
-            1 => Event::Char(string.chars().nth(0).unwrap()),
-            2 => {
-                if string.chars().nth(0).unwrap() == '\u{1b}' {
-                    Event::AltChar(string.chars().nth(1).unwrap())
-                } else {
-                    Event::Unimplemented(string)
+    fn mouse_event(string: &str) -> Option<MouseEvent> {
+        const PREFIX: &str = "\u{1b}[<";
+
+        if          !string.starts_with(PREFIX) { return None; }
+        let i      = string.find(';')?;
+        let action = &string[PREFIX.len()..i];
+        let j      = string[i+1..].find(';')?;
+        let x      = &string[i+1..i+1+j];
+        let end    = &string[i+1+j+1..];
+        let m      = &end.chars().last().unwrap();
+        let y      = &end[..end.len()-1];
+        let Ok(x)  = x.parse() else { return None; };
+        let Ok(y)  = y.parse() else { return None; };
+
+        match m {
+            'M' => {
+                match action {
+                    "64"  => Some(MouseEvent::           ScrollUp(x, y)),
+                    "80"  => Some(MouseEvent::       CtrlScrollUp(x, y)),
+                    "72"  => Some(MouseEvent::        AltScrollUp(x, y)),
+                    "88"  => Some(MouseEvent::    CtrlAltScrollUp(x, y)),
+
+                    "65"  => Some(MouseEvent::         ScrollDown(x, y)),
+                    "81"  => Some(MouseEvent::     CtrlScrollDown(x, y)),
+                    "73"  => Some(MouseEvent::      AltScrollDown(x, y)),
+                    "89"  => Some(MouseEvent::  CtrlAltScrollDown(x, y)),
+
+                    "35"  => Some(MouseEvent::              Hover(x, y)),
+                    "51"  => Some(MouseEvent::          CtrlHover(x, y)),
+                    "43"  => Some(MouseEvent::           AltHover(x, y)),
+                    "59"  => Some(MouseEvent::       CtrlAltHover(x, y)),
+
+                    "32"  => Some(MouseEvent::           LeftDrag(x, y)),
+                    "48"  => Some(MouseEvent::       CtrlLeftDrag(x, y)),
+                    "40"  => Some(MouseEvent::        AltLeftDrag(x, y)),
+                    "56"  => Some(MouseEvent::    CtrlAltLeftDrag(x, y)),
+                    "33"  => Some(MouseEvent::         MiddleDrag(x, y)),
+                    "49"  => Some(MouseEvent::     CtrlMiddleDrag(x, y)),
+                    "41"  => Some(MouseEvent::      AltMiddleDrag(x, y)),
+                    "57"  => Some(MouseEvent::  CtrlAltMiddleDrag(x, y)),
+                    "34"  => Some(MouseEvent::          RightDrag(x, y)),
+                    "50"  => Some(MouseEvent::      CtrlRightDrag(x, y)),
+                    "42"  => Some(MouseEvent::       AltRightDrag(x, y)),
+                    "58"  => Some(MouseEvent::   CtrlAltRightDrag(x, y)),
+                    "160" => Some(MouseEvent::           BackDrag(x, y)),
+                    "176" => Some(MouseEvent::       CtrlBackDrag(x, y)),
+                    "168" => Some(MouseEvent::        AltBackDrag(x, y)),
+                    "184" => Some(MouseEvent::    CtrlAltBackDrag(x, y)),
+                    "161" => Some(MouseEvent::        ForwardDrag(x, y)),
+                    "177" => Some(MouseEvent::    CtrlForwardDrag(x, y)),
+                    "169" => Some(MouseEvent::     AltForwardDrag(x, y)),
+                    "185" => Some(MouseEvent:: CtrlAltForwardDrag(x, y)),
+
+                    "0"   => Some(MouseEvent::          LeftPress(x, y)),
+                    "16"  => Some(MouseEvent::      CtrlLeftPress(x, y)),
+                    "8"   => Some(MouseEvent::       AltLeftPress(x, y)),
+                    "24"  => Some(MouseEvent::   CtrlAltLeftPress(x, y)),
+
+                    "1"   => Some(MouseEvent::        MiddlePress(x, y)),
+                    "17"  => Some(MouseEvent::    CtrlMiddlePress(x, y)),
+                    "9"   => Some(MouseEvent::     AltMiddlePress(x, y)),
+                    "25"  => Some(MouseEvent:: CtrlAltMiddlePress(x, y)),
+
+                    "2"   => Some(MouseEvent::         RightPress(x, y)),
+                    "18"  => Some(MouseEvent::     CtrlRightPress(x, y)),
+                    "10"  => Some(MouseEvent::      AltRightPress(x, y)),
+                    "26"  => Some(MouseEvent::  CtrlAltRightPress(x, y)),
+
+                    "128" => Some(MouseEvent::          BackPress(x, y)),
+                    "144" => Some(MouseEvent::      CtrlBackPress(x, y)),
+                    "136" => Some(MouseEvent::       AltBackPress(x, y)),
+                    "152" => Some(MouseEvent::   CtrlAltBackPress(x, y)),
+
+                    "129" => Some(MouseEvent::       ForwardPress(x, y)),
+                    "145" => Some(MouseEvent::   CtrlForwardPress(x, y)),
+                    "137" => Some(MouseEvent::    AltForwardPress(x, y)),
+                    "153" => Some(MouseEvent::CtrlAltForwardPress(x, y)),
+
+                    _     => None
                 }
             },
-            _ => Event::Unimplemented(string)
+            'm' => {
+                match action {
+                    "0"   => Some(MouseEvent::          LeftRelease(x, y)),
+                    "16"  => Some(MouseEvent::      CtrlLeftRelease(x, y)),
+                    "8"   => Some(MouseEvent::       AltLeftRelease(x, y)),
+                    "24"  => Some(MouseEvent::   CtrlAltLeftRelease(x, y)),
+
+                    "1"   => Some(MouseEvent::        MiddleRelease(x, y)),
+                    "17"  => Some(MouseEvent::    CtrlMiddleRelease(x, y)),
+                    "9"   => Some(MouseEvent::     AltMiddleRelease(x, y)),
+                    "25"  => Some(MouseEvent:: CtrlAltMiddleRelease(x, y)),
+
+                    "2"   => Some(MouseEvent::         RightRelease(x, y)),
+                    "18"  => Some(MouseEvent::     CtrlRightRelease(x, y)),
+                    "10"  => Some(MouseEvent::      AltRightRelease(x, y)),
+                    "26"  => Some(MouseEvent::  CtrlAltRightRelease(x, y)),
+
+                    "128" => Some(MouseEvent::          BackRelease(x, y)),
+                    "144" => Some(MouseEvent::      CtrlBackRelease(x, y)),
+                    "136" => Some(MouseEvent::       AltBackRelease(x, y)),
+                    "152" => Some(MouseEvent::   CtrlAltBackRelease(x, y)),
+
+                    "129" => Some(MouseEvent::       ForwardRelease(x, y)),
+                    "145" => Some(MouseEvent::   CtrlForwardRelease(x, y)),
+                    "137" => Some(MouseEvent::    AltForwardRelease(x, y)),
+                    "153" => Some(MouseEvent::CtrlAltForwardRelease(x, y)),
+
+                    _     => None
+                }
+            },
+            _ => None
         }
+    }
+
+    fn other_event(string: String) -> Event {
+        match string.chars().count() {
+            1 => {
+                return Event::Keyboard(
+                    KeyboardEvent::Char(
+                        string.chars().nth(0).unwrap()
+                    )
+                );
+            },
+            2 => {
+                if string.chars().nth(0).unwrap() == '\u{1b}' {
+                    return Event::Keyboard(
+                        KeyboardEvent::AltChar(
+                            string.chars().nth(1).unwrap()
+                        )
+                    );
+                }
+            },
+            3 => {
+                match string.as_str() {
+                    "\u{1b}[I" => { return Event::FocusGained; },
+                    "\u{1b}[O" => { return Event::FocusLost;   },
+                    _          => ()
+                }
+            },
+            _ => ()
+        }
+
+        Event::Unimplemented(string)
+    }
+
+    // NOTE: all my homies hate advanced ANSI escapes
+    // TODO: breaks when multiple events are read at one time
+    /// waits forever until something happens
+    pub fn blocking_event(&mut self) -> Event {
+        let string = self.read_event_to_string();
+
+        if let Some(keyboard_event) = self.keyboard_event(&string) {
+            return Event::Keyboard(keyboard_event);
+        }
+
+        if let Some(mouse_event) = Self::mouse_event(&string) {
+            return Event::Mouse(mouse_event);
+        }
+
+        Self::other_event(string)
     }
 }
 
@@ -407,26 +550,37 @@ impl Drop for RawTerminal {
 #[expect(missing_docs)]
 #[derive(Debug, Clone)]
 pub enum Event {
-    /**/ NoModifiers(Eventee),
-    /**/Ctrl        (Eventee),
-    /**/    Alt     (Eventee),
-    /**/       Shift(Eventee),
-    /**/CtrlAlt     (Eventee),
-    /**/CtrlShift   (Eventee),
-    /**/    AltShift(Eventee),
-    /**/CtrlAltShift(Eventee),
+    Keyboard(KeyboardEvent),
+    Mouse   (   MouseEvent),
 
     FocusGained,
     FocusLost,
 
-    /// characters are not in [`Eventee`], because some modifiers for typeable characters  
+    /// returns what was read from input when betterm cannot make sense of it,  
+    /// if its relevant, you can submit an issue/pr
+    Unimplemented(String)
+}
+
+#[expect(missing_docs)]
+#[derive(Debug, Clone)]
+pub enum KeyboardEvent {
+    /**/ NoModifiers(Key),
+    /**/Ctrl        (Key),
+    /**/    Alt     (Key),
+    /**/       Shift(Key),
+    /**/CtrlAlt     (Key),
+    /**/CtrlShift   (Key),
+    /**/    AltShift(Key),
+    /**/CtrlAltShift(Key),
+
+    /// characters are not in [`Key`], because some modifiers for typeable characters  
     /// produce locale specific characters (`Shift` and `AltGr`)
     /*       */Char(           char),
     /*    */AltChar(           char),
     /*   */CtrlChar(   CtrlableChar),
     /**/CtrlAltChar(CtrlAltableChar),
 
-    /// `Backspace` is not in [`Eventee`], since these do not work in terminals:  
+    /// `Backspace` is not in [`Key`], since these do not work in terminals:  
     /// - `Shift + Backspace`  
     /// - `Ctrl + Shift + Backspace`  
     /// - `Alt + Shift + Backspace`  
@@ -436,7 +590,7 @@ pub enum Event {
     /*    */AltBackspace,
     /**/CtrlAltBackspace,
 
-    /// `Insert` is not in [`Eventee`], because `Shift` is used for bracketed paste
+    /// `Insert` is not in [`Key`], because `Shift` is used for bracketed paste
     /*            */Insert,
     /*        */CtrlInsert,
     /*         */AltInsert,
@@ -446,11 +600,101 @@ pub enum Event {
     /**/CtrlAltShiftInsert,
 
     /// this is the paste from your clipboard
-    Pasted(String),
+    Pasted(String)
+}
 
-    /// returns what was read from input when betterm cannot make sense of it,  
-    /// if its relevant, you can submit an issue/pr
-    Unimplemented(String)
+#[expect(missing_docs)]
+#[derive(Debug, Clone)]
+pub enum MouseEvent {
+    /*       */ScrollUp(u16, u16),
+    /*   */CtrlScrollUp(u16, u16),
+    /*    */AltScrollUp(u16, u16),
+    /**/CtrlAltScrollUp(u16, u16),
+
+    /*       */ScrollDown(u16, u16),
+    /*   */CtrlScrollDown(u16, u16),
+    /*    */AltScrollDown(u16, u16),
+    /**/CtrlAltScrollDown(u16, u16),
+
+    /*       */Hover(u16, u16),
+    /*   */CtrlHover(u16, u16),
+    /*    */AltHover(u16, u16),
+    /**/CtrlAltHover(u16, u16),
+
+    /*       */LeftDrag(u16, u16),
+    /*   */CtrlLeftDrag(u16, u16),
+    /*    */AltLeftDrag(u16, u16),
+    /**/CtrlAltLeftDrag(u16, u16),
+
+    /*       */MiddleDrag(u16, u16),
+    /*   */CtrlMiddleDrag(u16, u16),
+    /*    */AltMiddleDrag(u16, u16),
+    /**/CtrlAltMiddleDrag(u16, u16),
+
+    /*       */RightDrag(u16, u16),
+    /*   */CtrlRightDrag(u16, u16),
+    /*    */AltRightDrag(u16, u16),
+    /**/CtrlAltRightDrag(u16, u16),
+
+    /*       */BackDrag(u16, u16),
+    /*   */CtrlBackDrag(u16, u16),
+    /*    */AltBackDrag(u16, u16),
+    /**/CtrlAltBackDrag(u16, u16),
+
+    /*       */ForwardDrag(u16, u16),
+    /*   */CtrlForwardDrag(u16, u16),
+    /*    */AltForwardDrag(u16, u16),
+    /**/CtrlAltForwardDrag(u16, u16),
+
+    /*       */LeftPress(u16, u16),
+    /*   */CtrlLeftPress(u16, u16),
+    /*    */AltLeftPress(u16, u16),
+    /**/CtrlAltLeftPress(u16, u16),
+
+    /*       */MiddlePress(u16, u16),
+    /*   */CtrlMiddlePress(u16, u16),
+    /*    */AltMiddlePress(u16, u16),
+    /**/CtrlAltMiddlePress(u16, u16),
+
+    /*       */RightPress(u16, u16),
+    /*   */CtrlRightPress(u16, u16),
+    /*    */AltRightPress(u16, u16),
+    /**/CtrlAltRightPress(u16, u16),
+
+    /*       */BackPress(u16, u16),
+    /*   */CtrlBackPress(u16, u16),
+    /*    */AltBackPress(u16, u16),
+    /**/CtrlAltBackPress(u16, u16),
+
+    /*       */ForwardPress(u16, u16),
+    /*   */CtrlForwardPress(u16, u16),
+    /*    */AltForwardPress(u16, u16),
+    /**/CtrlAltForwardPress(u16, u16),
+
+    /*       */LeftRelease(u16, u16),
+    /*   */CtrlLeftRelease(u16, u16),
+    /*    */AltLeftRelease(u16, u16),
+    /**/CtrlAltLeftRelease(u16, u16),
+
+    /*       */MiddleRelease(u16, u16),
+    /*   */CtrlMiddleRelease(u16, u16),
+    /*    */AltMiddleRelease(u16, u16),
+    /**/CtrlAltMiddleRelease(u16, u16),
+
+    /*       */RightRelease(u16, u16),
+    /*   */CtrlRightRelease(u16, u16),
+    /*    */AltRightRelease(u16, u16),
+    /**/CtrlAltRightRelease(u16, u16),
+
+    /*       */BackRelease(u16, u16),
+    /*   */CtrlBackRelease(u16, u16),
+    /*    */AltBackRelease(u16, u16),
+    /**/CtrlAltBackRelease(u16, u16),
+
+    /*       */ForwardRelease(u16, u16),
+    /*   */CtrlForwardRelease(u16, u16),
+    /*    */AltForwardRelease(u16, u16),
+    /**/CtrlAltForwardRelease(u16, u16)
 }
 
 /// includes the whole alphabet, except: H, I, J, M  
@@ -493,7 +737,7 @@ pub enum CtrlAltableChar {
 /// - `Ctrl + Alt + Shift`
 #[expect(missing_docs)]
 #[derive(Debug, Clone, Copy)]
-pub enum Eventee {
+pub enum Key {
     Enter, // NOTE: deliberately not `Char('\n')`
     Tab,   // NOTE: deliberately not `Char('\t')`
     Escape,
