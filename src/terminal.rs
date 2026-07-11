@@ -381,96 +381,99 @@ impl RawTerminal {
         match m {
             'M' => {
                 match action {
-                    "64"  => Some(MouseEvent::           ScrollUp(x, y)),
-                    "80"  => Some(MouseEvent::       CtrlScrollUp(x, y)),
-                    "72"  => Some(MouseEvent::        AltScrollUp(x, y)),
-                    "88"  => Some(MouseEvent::    CtrlAltScrollUp(x, y)),
+                    "64"  => Some(MouseEvent::Scroll(     ScrollEvent::NoModifiers(ScrollDirection::     Up(x, y)))),
+                    "65"  => Some(MouseEvent::Scroll(     ScrollEvent::NoModifiers(ScrollDirection::   Down(x, y)))),
+                    "80"  => Some(MouseEvent::Scroll(     ScrollEvent::    Ctrl   (ScrollDirection::     Up(x, y)))),
+                    "81"  => Some(MouseEvent::Scroll(     ScrollEvent::    Ctrl   (ScrollDirection::   Down(x, y)))),
+                    "72"  => Some(MouseEvent::Scroll(     ScrollEvent::        Alt(ScrollDirection::     Up(x, y)))),
+                    "73"  => Some(MouseEvent::Scroll(     ScrollEvent::        Alt(ScrollDirection::   Down(x, y)))),
+                    "88"  => Some(MouseEvent::Scroll(     ScrollEvent::    CtrlAlt(ScrollDirection::     Up(x, y)))),
+                    "89"  => Some(MouseEvent::Scroll(     ScrollEvent::    CtrlAlt(ScrollDirection::   Down(x, y)))),
 
-                    "65"  => Some(MouseEvent::         ScrollDown(x, y)),
-                    "81"  => Some(MouseEvent::     CtrlScrollDown(x, y)),
-                    "73"  => Some(MouseEvent::      AltScrollDown(x, y)),
-                    "89"  => Some(MouseEvent::  CtrlAltScrollDown(x, y)),
+                    "35"  => Some(MouseEvent:: Hover(      HoverEvent::NoModifiers                         (x, y))),
+                    "51"  => Some(MouseEvent:: Hover(      HoverEvent::    Ctrl                            (x, y))),
+                    "43"  => Some(MouseEvent:: Hover(      HoverEvent::        Alt                         (x, y))),
+                    "59"  => Some(MouseEvent:: Hover(      HoverEvent::    CtrlAlt                         (x, y))),
 
-                    "35"  => Some(MouseEvent::              Hover(x, y)),
-                    "51"  => Some(MouseEvent::          CtrlHover(x, y)),
-                    "43"  => Some(MouseEvent::           AltHover(x, y)),
-                    "59"  => Some(MouseEvent::       CtrlAltHover(x, y)),
+                    "32"  => Some(MouseEvent::  Drag(MouseButtonEvent::NoModifiers(    MouseButton::   Left(x, y)))),
+                    "48"  => Some(MouseEvent::  Drag(MouseButtonEvent::    Ctrl   (    MouseButton::   Left(x, y)))),
+                    "40"  => Some(MouseEvent::  Drag(MouseButtonEvent::        Alt(    MouseButton::   Left(x, y)))),
+                    "56"  => Some(MouseEvent::  Drag(MouseButtonEvent::    CtrlAlt(    MouseButton::   Left(x, y)))),
 
-                    "32"  => Some(MouseEvent::           LeftDrag(x, y)),
-                    "48"  => Some(MouseEvent::       CtrlLeftDrag(x, y)),
-                    "40"  => Some(MouseEvent::        AltLeftDrag(x, y)),
-                    "56"  => Some(MouseEvent::    CtrlAltLeftDrag(x, y)),
-                    "33"  => Some(MouseEvent::         MiddleDrag(x, y)),
-                    "49"  => Some(MouseEvent::     CtrlMiddleDrag(x, y)),
-                    "41"  => Some(MouseEvent::      AltMiddleDrag(x, y)),
-                    "57"  => Some(MouseEvent::  CtrlAltMiddleDrag(x, y)),
-                    "34"  => Some(MouseEvent::          RightDrag(x, y)),
-                    "50"  => Some(MouseEvent::      CtrlRightDrag(x, y)),
-                    "42"  => Some(MouseEvent::       AltRightDrag(x, y)),
-                    "58"  => Some(MouseEvent::   CtrlAltRightDrag(x, y)),
-                    "160" => Some(MouseEvent::           BackDrag(x, y)),
-                    "176" => Some(MouseEvent::       CtrlBackDrag(x, y)),
-                    "168" => Some(MouseEvent::        AltBackDrag(x, y)),
-                    "184" => Some(MouseEvent::    CtrlAltBackDrag(x, y)),
-                    "161" => Some(MouseEvent::        ForwardDrag(x, y)),
-                    "177" => Some(MouseEvent::    CtrlForwardDrag(x, y)),
-                    "169" => Some(MouseEvent::     AltForwardDrag(x, y)),
-                    "185" => Some(MouseEvent:: CtrlAltForwardDrag(x, y)),
+                    "33"  => Some(MouseEvent::  Drag(MouseButtonEvent::NoModifiers(    MouseButton:: Middle(x, y)))),
+                    "49"  => Some(MouseEvent::  Drag(MouseButtonEvent::    Ctrl   (    MouseButton:: Middle(x, y)))),
+                    "41"  => Some(MouseEvent::  Drag(MouseButtonEvent::        Alt(    MouseButton:: Middle(x, y)))),
+                    "57"  => Some(MouseEvent::  Drag(MouseButtonEvent::    CtrlAlt(    MouseButton:: Middle(x, y)))),
 
-                    "0"   => Some(MouseEvent::          LeftPress(x, y)),
-                    "16"  => Some(MouseEvent::      CtrlLeftPress(x, y)),
-                    "8"   => Some(MouseEvent::       AltLeftPress(x, y)),
-                    "24"  => Some(MouseEvent::   CtrlAltLeftPress(x, y)),
+                    "34"  => Some(MouseEvent::  Drag(MouseButtonEvent::NoModifiers(    MouseButton::  Right(x, y)))),
+                    "50"  => Some(MouseEvent::  Drag(MouseButtonEvent::    Ctrl   (    MouseButton::  Right(x, y)))),
+                    "42"  => Some(MouseEvent::  Drag(MouseButtonEvent::        Alt(    MouseButton::  Right(x, y)))),
+                    "58"  => Some(MouseEvent::  Drag(MouseButtonEvent::    CtrlAlt(    MouseButton::  Right(x, y)))),
 
-                    "1"   => Some(MouseEvent::        MiddlePress(x, y)),
-                    "17"  => Some(MouseEvent::    CtrlMiddlePress(x, y)),
-                    "9"   => Some(MouseEvent::     AltMiddlePress(x, y)),
-                    "25"  => Some(MouseEvent:: CtrlAltMiddlePress(x, y)),
+                    "160" => Some(MouseEvent::  Drag(MouseButtonEvent::NoModifiers(    MouseButton::   Back(x, y)))),
+                    "176" => Some(MouseEvent::  Drag(MouseButtonEvent::    Ctrl   (    MouseButton::   Back(x, y)))),
+                    "168" => Some(MouseEvent::  Drag(MouseButtonEvent::        Alt(    MouseButton::   Back(x, y)))),
+                    "184" => Some(MouseEvent::  Drag(MouseButtonEvent::    CtrlAlt(    MouseButton::   Back(x, y)))),
 
-                    "2"   => Some(MouseEvent::         RightPress(x, y)),
-                    "18"  => Some(MouseEvent::     CtrlRightPress(x, y)),
-                    "10"  => Some(MouseEvent::      AltRightPress(x, y)),
-                    "26"  => Some(MouseEvent::  CtrlAltRightPress(x, y)),
+                    "161" => Some(MouseEvent::  Drag(MouseButtonEvent::NoModifiers(    MouseButton::Forward(x, y)))),
+                    "177" => Some(MouseEvent::  Drag(MouseButtonEvent::    Ctrl   (    MouseButton::Forward(x, y)))),
+                    "169" => Some(MouseEvent::  Drag(MouseButtonEvent::        Alt(    MouseButton::Forward(x, y)))),
+                    "185" => Some(MouseEvent::  Drag(MouseButtonEvent::    CtrlAlt(    MouseButton::Forward(x, y)))),
 
-                    "128" => Some(MouseEvent::          BackPress(x, y)),
-                    "144" => Some(MouseEvent::      CtrlBackPress(x, y)),
-                    "136" => Some(MouseEvent::       AltBackPress(x, y)),
-                    "152" => Some(MouseEvent::   CtrlAltBackPress(x, y)),
+                    "0"   => Some(MouseEvent:: Press(MouseButtonEvent::NoModifiers(    MouseButton::   Left(x, y)))),
+                    "16"  => Some(MouseEvent:: Press(MouseButtonEvent::    Ctrl   (    MouseButton::   Left(x, y)))),
+                    "8"   => Some(MouseEvent:: Press(MouseButtonEvent::        Alt(    MouseButton::   Left(x, y)))),
+                    "24"  => Some(MouseEvent:: Press(MouseButtonEvent::    CtrlAlt(    MouseButton::   Left(x, y)))),
 
-                    "129" => Some(MouseEvent::       ForwardPress(x, y)),
-                    "145" => Some(MouseEvent::   CtrlForwardPress(x, y)),
-                    "137" => Some(MouseEvent::    AltForwardPress(x, y)),
-                    "153" => Some(MouseEvent::CtrlAltForwardPress(x, y)),
+                    "1"   => Some(MouseEvent:: Press(MouseButtonEvent::NoModifiers(    MouseButton:: Middle(x, y)))),
+                    "17"  => Some(MouseEvent:: Press(MouseButtonEvent::    Ctrl   (    MouseButton:: Middle(x, y)))),
+                    "9"   => Some(MouseEvent:: Press(MouseButtonEvent::        Alt(    MouseButton:: Middle(x, y)))),
+                    "25"  => Some(MouseEvent:: Press(MouseButtonEvent::    CtrlAlt(    MouseButton:: Middle(x, y)))),
+
+                    "2"   => Some(MouseEvent:: Press(MouseButtonEvent::NoModifiers(    MouseButton::  Right(x, y)))),
+                    "18"  => Some(MouseEvent:: Press(MouseButtonEvent::    Ctrl   (    MouseButton::  Right(x, y)))),
+                    "10"  => Some(MouseEvent:: Press(MouseButtonEvent::        Alt(    MouseButton::  Right(x, y)))),
+                    "26"  => Some(MouseEvent:: Press(MouseButtonEvent::    CtrlAlt(    MouseButton::  Right(x, y)))),
+
+                    "128" => Some(MouseEvent:: Press(MouseButtonEvent::NoModifiers(    MouseButton::   Back(x, y)))),
+                    "144" => Some(MouseEvent:: Press(MouseButtonEvent::    Ctrl   (    MouseButton::   Back(x, y)))),
+                    "136" => Some(MouseEvent:: Press(MouseButtonEvent::        Alt(    MouseButton::   Back(x, y)))),
+                    "152" => Some(MouseEvent:: Press(MouseButtonEvent::    CtrlAlt(    MouseButton::   Back(x, y)))),
+
+                    "129" => Some(MouseEvent:: Press(MouseButtonEvent::NoModifiers(    MouseButton::Forward(x, y)))),
+                    "145" => Some(MouseEvent:: Press(MouseButtonEvent::    Ctrl   (    MouseButton::Forward(x, y)))),
+                    "137" => Some(MouseEvent:: Press(MouseButtonEvent::        Alt(    MouseButton::Forward(x, y)))),
+                    "153" => Some(MouseEvent:: Press(MouseButtonEvent::    CtrlAlt(    MouseButton::Forward(x, y)))),
 
                     _     => None
                 }
             },
             'm' => {
                 match action {
-                    "0"   => Some(MouseEvent::          LeftRelease(x, y)),
-                    "16"  => Some(MouseEvent::      CtrlLeftRelease(x, y)),
-                    "8"   => Some(MouseEvent::       AltLeftRelease(x, y)),
-                    "24"  => Some(MouseEvent::   CtrlAltLeftRelease(x, y)),
+                    "0"   => Some(MouseEvent::Release(MouseButtonEvent::NoModifiers(MouseButton::   Left(x, y)))),
+                    "16"  => Some(MouseEvent::Release(MouseButtonEvent::    Ctrl   (MouseButton::   Left(x, y)))),
+                    "8"   => Some(MouseEvent::Release(MouseButtonEvent::        Alt(MouseButton::   Left(x, y)))),
+                    "24"  => Some(MouseEvent::Release(MouseButtonEvent::    CtrlAlt(MouseButton::   Left(x, y)))),
 
-                    "1"   => Some(MouseEvent::        MiddleRelease(x, y)),
-                    "17"  => Some(MouseEvent::    CtrlMiddleRelease(x, y)),
-                    "9"   => Some(MouseEvent::     AltMiddleRelease(x, y)),
-                    "25"  => Some(MouseEvent:: CtrlAltMiddleRelease(x, y)),
+                    "1"   => Some(MouseEvent::Release(MouseButtonEvent::NoModifiers(MouseButton:: Middle(x, y)))),
+                    "17"  => Some(MouseEvent::Release(MouseButtonEvent::    Ctrl   (MouseButton:: Middle(x, y)))),
+                    "9"   => Some(MouseEvent::Release(MouseButtonEvent::        Alt(MouseButton:: Middle(x, y)))),
+                    "25"  => Some(MouseEvent::Release(MouseButtonEvent::    CtrlAlt(MouseButton:: Middle(x, y)))),
 
-                    "2"   => Some(MouseEvent::         RightRelease(x, y)),
-                    "18"  => Some(MouseEvent::     CtrlRightRelease(x, y)),
-                    "10"  => Some(MouseEvent::      AltRightRelease(x, y)),
-                    "26"  => Some(MouseEvent::  CtrlAltRightRelease(x, y)),
+                    "2"   => Some(MouseEvent::Release(MouseButtonEvent::NoModifiers(MouseButton::  Right(x, y)))),
+                    "18"  => Some(MouseEvent::Release(MouseButtonEvent::    Ctrl   (MouseButton::  Right(x, y)))),
+                    "10"  => Some(MouseEvent::Release(MouseButtonEvent::        Alt(MouseButton::  Right(x, y)))),
+                    "26"  => Some(MouseEvent::Release(MouseButtonEvent::    CtrlAlt(MouseButton::  Right(x, y)))),
 
-                    "128" => Some(MouseEvent::          BackRelease(x, y)),
-                    "144" => Some(MouseEvent::      CtrlBackRelease(x, y)),
-                    "136" => Some(MouseEvent::       AltBackRelease(x, y)),
-                    "152" => Some(MouseEvent::   CtrlAltBackRelease(x, y)),
+                    "128" => Some(MouseEvent::Release(MouseButtonEvent::NoModifiers(MouseButton::   Back(x, y)))),
+                    "144" => Some(MouseEvent::Release(MouseButtonEvent::    Ctrl   (MouseButton::   Back(x, y)))),
+                    "136" => Some(MouseEvent::Release(MouseButtonEvent::        Alt(MouseButton::   Back(x, y)))),
+                    "152" => Some(MouseEvent::Release(MouseButtonEvent::    CtrlAlt(MouseButton::   Back(x, y)))),
 
-                    "129" => Some(MouseEvent::       ForwardRelease(x, y)),
-                    "145" => Some(MouseEvent::   CtrlForwardRelease(x, y)),
-                    "137" => Some(MouseEvent::    AltForwardRelease(x, y)),
-                    "153" => Some(MouseEvent::CtrlAltForwardRelease(x, y)),
+                    "129" => Some(MouseEvent::Release(MouseButtonEvent::NoModifiers(MouseButton::Forward(x, y)))),
+                    "145" => Some(MouseEvent::Release(MouseButtonEvent::    Ctrl   (MouseButton::Forward(x, y)))),
+                    "137" => Some(MouseEvent::Release(MouseButtonEvent::        Alt(MouseButton::Forward(x, y)))),
+                    "153" => Some(MouseEvent::Release(MouseButtonEvent::    CtrlAlt(MouseButton::Forward(x, y)))),
 
                     _     => None
                 }
@@ -606,96 +609,71 @@ pub enum KeyboardEvent {
 #[expect(missing_docs)]
 #[derive(Debug, Clone)]
 pub enum MouseEvent {
-    /*       */ScrollUp(u16, u16),
-    /*   */CtrlScrollUp(u16, u16),
-    /*    */AltScrollUp(u16, u16),
-    /**/CtrlAltScrollUp(u16, u16),
-
-    /*       */ScrollDown(u16, u16),
-    /*   */CtrlScrollDown(u16, u16),
-    /*    */AltScrollDown(u16, u16),
-    /**/CtrlAltScrollDown(u16, u16),
-
-    /*       */Hover(u16, u16),
-    /*   */CtrlHover(u16, u16),
-    /*    */AltHover(u16, u16),
-    /**/CtrlAltHover(u16, u16),
-
-    /*       */LeftDrag(u16, u16),
-    /*   */CtrlLeftDrag(u16, u16),
-    /*    */AltLeftDrag(u16, u16),
-    /**/CtrlAltLeftDrag(u16, u16),
-
-    /*       */MiddleDrag(u16, u16),
-    /*   */CtrlMiddleDrag(u16, u16),
-    /*    */AltMiddleDrag(u16, u16),
-    /**/CtrlAltMiddleDrag(u16, u16),
-
-    /*       */RightDrag(u16, u16),
-    /*   */CtrlRightDrag(u16, u16),
-    /*    */AltRightDrag(u16, u16),
-    /**/CtrlAltRightDrag(u16, u16),
-
-    /*       */BackDrag(u16, u16),
-    /*   */CtrlBackDrag(u16, u16),
-    /*    */AltBackDrag(u16, u16),
-    /**/CtrlAltBackDrag(u16, u16),
-
-    /*       */ForwardDrag(u16, u16),
-    /*   */CtrlForwardDrag(u16, u16),
-    /*    */AltForwardDrag(u16, u16),
-    /**/CtrlAltForwardDrag(u16, u16),
-
-    /*       */LeftPress(u16, u16),
-    /*   */CtrlLeftPress(u16, u16),
-    /*    */AltLeftPress(u16, u16),
-    /**/CtrlAltLeftPress(u16, u16),
-
-    /*       */MiddlePress(u16, u16),
-    /*   */CtrlMiddlePress(u16, u16),
-    /*    */AltMiddlePress(u16, u16),
-    /**/CtrlAltMiddlePress(u16, u16),
-
-    /*       */RightPress(u16, u16),
-    /*   */CtrlRightPress(u16, u16),
-    /*    */AltRightPress(u16, u16),
-    /**/CtrlAltRightPress(u16, u16),
-
-    /*       */BackPress(u16, u16),
-    /*   */CtrlBackPress(u16, u16),
-    /*    */AltBackPress(u16, u16),
-    /**/CtrlAltBackPress(u16, u16),
-
-    /*       */ForwardPress(u16, u16),
-    /*   */CtrlForwardPress(u16, u16),
-    /*    */AltForwardPress(u16, u16),
-    /**/CtrlAltForwardPress(u16, u16),
-
-    /*       */LeftRelease(u16, u16),
-    /*   */CtrlLeftRelease(u16, u16),
-    /*    */AltLeftRelease(u16, u16),
-    /**/CtrlAltLeftRelease(u16, u16),
-
-    /*       */MiddleRelease(u16, u16),
-    /*   */CtrlMiddleRelease(u16, u16),
-    /*    */AltMiddleRelease(u16, u16),
-    /**/CtrlAltMiddleRelease(u16, u16),
-
-    /*       */RightRelease(u16, u16),
-    /*   */CtrlRightRelease(u16, u16),
-    /*    */AltRightRelease(u16, u16),
-    /**/CtrlAltRightRelease(u16, u16),
-
-    /*       */BackRelease(u16, u16),
-    /*   */CtrlBackRelease(u16, u16),
-    /*    */AltBackRelease(u16, u16),
-    /**/CtrlAltBackRelease(u16, u16),
-
-    /*       */ForwardRelease(u16, u16),
-    /*   */CtrlForwardRelease(u16, u16),
-    /*    */AltForwardRelease(u16, u16),
-    /**/CtrlAltForwardRelease(u16, u16)
+    Scroll (     ScrollEvent),
+    Hover  (      HoverEvent),
+    Drag   (MouseButtonEvent),
+    Press  (MouseButtonEvent),
+    Release(MouseButtonEvent)
 }
+
+#[expect(missing_docs)]
+#[derive(Debug, Clone)]
+pub enum ScrollEvent {
+    /**/NoModifiers(ScrollDirection),
+    /**/    Ctrl   (ScrollDirection),
+    /**/        Alt(ScrollDirection),
+    /**/    CtrlAlt(ScrollDirection)
+}
+
+#[expect(missing_docs)]
+#[derive(Debug, Clone)]
+pub enum ScrollDirection {
+    Up  (u16, u16),
+    Down(u16, u16)
+}
+
+#[expect(missing_docs)]
+#[derive(Debug, Clone)]
+pub enum HoverEvent {
+    /**/NoModifiers(u16, u16),
+    /**/    Ctrl   (u16, u16),
+    /**/        Alt(u16, u16),
+    /**/    CtrlAlt(u16, u16)
+}
+
+#[expect(missing_docs)]
+#[derive(Debug, Clone)]
+pub enum MouseButtonEvent {
+    /**/NoModifiers(MouseButton),
+    /**/    Ctrl   (MouseButton),
+    /**/        Alt(MouseButton),
+    /**/    CtrlAlt(MouseButton)
+}
+
+#[expect(missing_docs)]
+#[derive(Debug, Clone)]
+pub enum MouseButton {
+    Left   (u16, u16),
+    Middle (u16, u16),
+    Right  (u16, u16),
+    Back   (u16, u16),
+    Forward(u16, u16)
+}
+
+#[expect(missing_docs)]
+#[derive(Debug, Clone)]
+pub enum Key {
+    Enter, // NOTE: deliberately not `Char('\n')`
+    Tab,   // NOTE: deliberately not `Char('\t')`
+    Escape,
+    F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
+    Delete,
+    Home, End,
+    PageUp, PageDown,
+    ArrowUp, ArrowDown, ArrowRight, ArrowLeft
+}
+
+// ------------------------------------------------------------------------------------------------------------------ //
 
 /// includes the whole alphabet, except: H, I, J, M  
 ///
@@ -724,27 +702,5 @@ pub enum CtrlableChar {
 #[derive(Debug, Clone, Copy)]
 pub enum CtrlAltableChar {
     A, B, C, D, E, F, G, J, K, L, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
-}
-
-/// these events are compatible with all combinations of modifiers:  
-/// - none  
-/// - `Ctrl`  
-/// - `Alt`  
-/// - `Shift`  
-/// - `Ctrl + Alt`  
-/// - `Ctrl + Shift`  
-/// - `Alt + Shift`  
-/// - `Ctrl + Alt + Shift`
-#[expect(missing_docs)]
-#[derive(Debug, Clone, Copy)]
-pub enum Key {
-    Enter, // NOTE: deliberately not `Char('\n')`
-    Tab,   // NOTE: deliberately not `Char('\t')`
-    Escape,
-    F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
-    Delete,
-    Home, End,
-    PageUp, PageDown,
-    ArrowUp, ArrowDown, ArrowRight, ArrowLeft
 }
 
