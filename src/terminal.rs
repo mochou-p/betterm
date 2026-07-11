@@ -12,7 +12,7 @@ use std::os::fd::AsRawFd;
 /// enables focus reporting,  
 /// enables bracketed paste mode,  
 /// moves the cursor to the top left corner  
-/// (these will be customizable soon)
+/// (these will be customizable later)
 pub struct RawTerminal {
     old_termios: libc::termios,
     input:       Box<dyn ReadAndAsRawFd>,
@@ -83,18 +83,90 @@ impl RawTerminal {
     }
 
     // NOTE: all my homies hate advanced ANSI escapes
+    // TODO: breaks when multiple events are read at one time
     /// waits forever until something happens
     pub fn blocking_event(&mut self) -> Event {
         let string = self.read_event_to_string();
 
         match string.as_str() {
-            "\u{7f}"          => { return Event::                             Backspace ; },
-            "\u{8}"           => { return Event::                         CtrlBackspace ; },
-            "\u{1b}\u{7f}"    => { return Event::                          AltBackspace ; },
-            "\u{1b}\u{8}"     => { return Event::                      CtrlAltBackspace ; },
+            "\u{1b}[200~" => {
+                let mut accumulator = String::new();
 
-            "\u{1b}[I"        => { return Event::                      FocusGained      ; },
-            "\u{1b}[O"        => { return Event::                      FocusLost        ; },
+                loop {
+                    let chunk = self.read_event_to_string();
+
+                    if chunk == "\u{1b}[201~" {
+                        break;
+                    } else {
+                        accumulator.push_str(&chunk);
+                    }
+                }
+
+                return Event::Pasted(accumulator);
+            },
+
+            "\u{7f}"          => { return Event::         Backspace; },
+            "\u{8}"           => { return Event::     CtrlBackspace; },
+            "\u{1b}\u{7f}"    => { return Event::      AltBackspace; },
+            "\u{1b}\u{8}"     => { return Event::  CtrlAltBackspace; },
+
+            "\u{1b}[2~"       => { return Event::            Insert; },
+            "\u{1b}[2;5~"     => { return Event::        CtrlInsert; },
+            "\u{1b}[2;3~"     => { return Event::         AltInsert; },
+            "\u{1b}[2;7~"     => { return Event::     CtrlAltInsert; },
+            "\u{1b}[2;6~"     => { return Event::   CtrlShiftInsert; },
+            "\u{1b}[2;4~"     => { return Event::    AltShiftInsert; },
+            "\u{1b}[2;8~"     => { return Event::CtrlAltShiftInsert; },
+
+            "\u{1b}[I"        => { return Event::FocusGained       ; },
+            "\u{1b}[O"        => { return Event::FocusLost         ; },
+
+            "\u{1}"           => { return Event::   CtrlChar (   CtrlableChar::A       ); },
+            "\u{2}"           => { return Event::   CtrlChar (   CtrlableChar::B       ); },
+            "\u{3}"           => { return Event::   CtrlChar (   CtrlableChar::C       ); },
+            "\u{4}"           => { return Event::   CtrlChar (   CtrlableChar::D       ); },
+            "\u{5}"           => { return Event::   CtrlChar (   CtrlableChar::E       ); },
+            "\u{6}"           => { return Event::   CtrlChar (   CtrlableChar::F       ); },
+            "\u{7}"           => { return Event::   CtrlChar (   CtrlableChar::G       ); },
+            "\u{b}"           => { return Event::   CtrlChar (   CtrlableChar::K       ); },
+            "\u{c}"           => { return Event::   CtrlChar (   CtrlableChar::L       ); },
+            "\u{e}"           => { return Event::   CtrlChar (   CtrlableChar::N       ); },
+            "\u{f}"           => { return Event::   CtrlChar (   CtrlableChar::O       ); },
+            "\u{10}"          => { return Event::   CtrlChar (   CtrlableChar::P       ); },
+            "\u{11}"          => { return Event::   CtrlChar (   CtrlableChar::Q       ); },
+            "\u{12}"          => { return Event::   CtrlChar (   CtrlableChar::R       ); },
+            "\u{13}"          => { return Event::   CtrlChar (   CtrlableChar::S       ); },
+            "\u{14}"          => { return Event::   CtrlChar (   CtrlableChar::T       ); },
+            "\u{15}"          => { return Event::   CtrlChar (   CtrlableChar::U       ); },
+            "\u{16}"          => { return Event::   CtrlChar (   CtrlableChar::V       ); },
+            "\u{17}"          => { return Event::   CtrlChar (   CtrlableChar::W       ); },
+            "\u{18}"          => { return Event::   CtrlChar (   CtrlableChar::X       ); },
+            "\u{19}"          => { return Event::   CtrlChar (   CtrlableChar::Y       ); },
+            "\u{1a}"          => { return Event::   CtrlChar (   CtrlableChar::Z       ); },
+
+            "\u{1b}\u{1}"     => { return Event::CtrlAltChar (CtrlAltableChar::A       ); },
+            "\u{1b}\u{2}"     => { return Event::CtrlAltChar (CtrlAltableChar::B       ); },
+            "\u{1b}\u{3}"     => { return Event::CtrlAltChar (CtrlAltableChar::C       ); },
+            "\u{1b}\u{4}"     => { return Event::CtrlAltChar (CtrlAltableChar::D       ); },
+            "\u{1b}\u{5}"     => { return Event::CtrlAltChar (CtrlAltableChar::E       ); },
+            "\u{1b}\u{6}"     => { return Event::CtrlAltChar (CtrlAltableChar::F       ); },
+            "\u{1b}\u{7}"     => { return Event::CtrlAltChar (CtrlAltableChar::G       ); },
+            "\u{1b}\n"        => { return Event::CtrlAltChar (CtrlAltableChar::J       ); }, // TODO: but it could be something else
+            "\u{1b}\u{b}"     => { return Event::CtrlAltChar (CtrlAltableChar::K       ); },
+            "\u{1b}\u{c}"     => { return Event::CtrlAltChar (CtrlAltableChar::L       ); },
+            "\u{1b}\u{e}"     => { return Event::CtrlAltChar (CtrlAltableChar::N       ); },
+            "\u{1b}\u{f}"     => { return Event::CtrlAltChar (CtrlAltableChar::O       ); },
+            "\u{1b}\u{10}"    => { return Event::CtrlAltChar (CtrlAltableChar::P       ); },
+            "\u{1b}\u{11}"    => { return Event::CtrlAltChar (CtrlAltableChar::Q       ); },
+            "\u{1b}\u{12}"    => { return Event::CtrlAltChar (CtrlAltableChar::R       ); },
+            "\u{1b}\u{13}"    => { return Event::CtrlAltChar (CtrlAltableChar::S       ); },
+            "\u{1b}\u{14}"    => { return Event::CtrlAltChar (CtrlAltableChar::T       ); },
+            "\u{1b}\u{15}"    => { return Event::CtrlAltChar (CtrlAltableChar::U       ); },
+            "\u{1b}\u{16}"    => { return Event::CtrlAltChar (CtrlAltableChar::V       ); },
+            "\u{1b}\u{17}"    => { return Event::CtrlAltChar (CtrlAltableChar::W       ); },
+            "\u{1b}\u{18}"    => { return Event::CtrlAltChar (CtrlAltableChar::X       ); },
+            "\u{1b}\u{19}"    => { return Event::CtrlAltChar (CtrlAltableChar::Y       ); },
+            "\u{1b}\u{1a}"    => { return Event::CtrlAltChar (CtrlAltableChar::Z       ); },
 
             "\r" | "\n"       => { return Event::NoModifiers (Eventee::Enter           ); },
             "\u{1b}"          => { return Event::NoModifiers (Eventee::Escape          ); },
@@ -111,7 +183,6 @@ impl RawTerminal {
             "\u{1b}[23~"      => { return Event::NoModifiers (Eventee::F11             ); },
             "\u{1b}[24~"      => { return Event::NoModifiers (Eventee::F12             ); },
             "\t"              => { return Event::NoModifiers (Eventee::Tab             ); },
-            "\u{1b}[2~"       => { return Event::NoModifiers (Eventee::Insert          ); },
             "\u{1b}[3~"       => { return Event::NoModifiers (Eventee::Delete          ); },
             "\u{1b}[H"        => { return Event::NoModifiers (Eventee::Home            ); },
             "\u{1b}[F"        => { return Event::NoModifiers (Eventee::End             ); },
@@ -137,7 +208,6 @@ impl RawTerminal {
             "\u{1b}[23;5~"    => { return Event::Ctrl        (Eventee::F11             ); },
             "\u{1b}[24;5~"    => { return Event::Ctrl        (Eventee::F12             ); },
             "\u{1b}[27;5;9~"  => { return Event::Ctrl        (Eventee::Tab             ); },
-            "\u{1b}[2;5~"     => { return Event::Ctrl        (Eventee::Insert          ); },
             "\u{1b}[3;5~"     => { return Event::Ctrl        (Eventee::Delete          ); },
             "\u{1b}[1;5H"     => { return Event::Ctrl        (Eventee::Home            ); },
             "\u{1b}[1;5F"     => { return Event::Ctrl        (Eventee::End             ); },
@@ -163,7 +233,6 @@ impl RawTerminal {
             "\u{1b}[23;3~"    => { return Event::Alt         (Eventee::F11             ); },
             "\u{1b}[24;3~"    => { return Event::Alt         (Eventee::F12             ); },
             "\u{1b}\t"        => { return Event::Alt         (Eventee::Tab             ); },
-            "\u{1b}[2;3~"     => { return Event::Alt         (Eventee::Insert          ); },
             "\u{1b}[3;3~"     => { return Event::Alt         (Eventee::Delete          ); },
             "\u{1b}[1;3H"     => { return Event::Alt         (Eventee::Home            ); },
             "\u{1b}[1;3F"     => { return Event::Alt         (Eventee::End             ); },
@@ -189,13 +258,6 @@ impl RawTerminal {
             "\u{1b}[23;2~"    => { return Event::Shift       (Eventee::F11             ); },
             "\u{1b}[24;2~"    => { return Event::Shift       (Eventee::F12             ); },
             "\u{1b}[Z"        => { return Event::Shift       (Eventee::Tab             ); },
-            "\u{1b}[200~"     => { let string2  = self.read_event_to_string();
-                                   if  string2 != "\u{1b}[201~" {
-                                       return Event::Unimplemented(
-                                           format!("{string}{string2}")
-                                       );
-                                   }
-                                   return Event::Shift       (Eventee::Insert          ); },
             "\u{1b}[3;2~"     => { return Event::Shift       (Eventee::Delete          ); },
             "\u{1b}[1;2H"     => { return Event::Shift       (Eventee::Home            ); },
             "\u{1b}[1;2F"     => { return Event::Shift       (Eventee::End             ); },
@@ -221,7 +283,6 @@ impl RawTerminal {
             "\u{1b}[23;7~"    => { return Event::CtrlAlt     (Eventee::F11             ); }, // TTY11 lol
             "\u{1b}[24;7~"    => { return Event::CtrlAlt     (Eventee::F12             ); }, // TTY12 lol
             "\u{1b}[27;7;9~"  => { return Event::CtrlAlt     (Eventee::Tab             ); },
-            "\u{1b}[2;7~"     => { return Event::CtrlAlt     (Eventee::Insert          ); },
             "\u{1b}[3;7~"     => { return Event::CtrlAlt     (Eventee::Delete          ); },
             "\u{1b}[1;7H"     => { return Event::CtrlAlt     (Eventee::Home            ); },
             "\u{1b}[1;7F"     => { return Event::CtrlAlt     (Eventee::End             ); },
@@ -247,7 +308,6 @@ impl RawTerminal {
             "\u{1b}[23;6~"    => { return Event::CtrlShift   (Eventee::F11             ); },
             "\u{1b}[24;6~"    => { return Event::CtrlShift   (Eventee::F12             ); },
             "\u{1b}[27;6;9~"  => { return Event::CtrlShift   (Eventee::Tab             ); },
-            "\u{1b}[2;6~"     => { return Event::CtrlShift   (Eventee::Insert          ); },
             "\u{1b}[3;6~"     => { return Event::CtrlShift   (Eventee::Delete          ); },
             "\u{1b}[1;6H"     => { return Event::CtrlShift   (Eventee::Home            ); },
             "\u{1b}[1;6F"     => { return Event::CtrlShift   (Eventee::End             ); },
@@ -273,7 +333,6 @@ impl RawTerminal {
             "\u{1b}[23;4~"    => { return Event::AltShift    (Eventee::F11             ); },
             "\u{1b}[24;4~"    => { return Event::AltShift    (Eventee::F12             ); },
             "\u{1b}[27;4;9~"  => { return Event::AltShift    (Eventee::Tab             ); },
-            "\u{1b}[2;4~"     => { return Event::AltShift    (Eventee::Insert          ); },
             "\u{1b}[3;4~"     => { return Event::AltShift    (Eventee::Delete          ); },
             "\u{1b}[1;4H"     => { return Event::AltShift    (Eventee::Home            ); },
             "\u{1b}[1;4F"     => { return Event::AltShift    (Eventee::End             ); },
@@ -299,7 +358,6 @@ impl RawTerminal {
             "\u{1b}[23;8~"    => { return Event::CtrlAltShift(Eventee::F11             ); },
             "\u{1b}[24;8~"    => { return Event::CtrlAltShift(Eventee::F12             ); },
             "\u{1b}[27;8;9~"  => { return Event::CtrlAltShift(Eventee::Tab             ); },
-            "\u{1b}[2;8~"     => { return Event::CtrlAltShift(Eventee::Insert          ); },
             "\u{1b}[3;8~"     => { return Event::CtrlAltShift(Eventee::Delete          ); },
             "\u{1b}[1;8H"     => { return Event::CtrlAltShift(Eventee::Home            ); },
             "\u{1b}[1;8F"     => { return Event::CtrlAltShift(Eventee::End             ); },
@@ -313,12 +371,16 @@ impl RawTerminal {
             _                 => ()
         }
 
-        if string.chars().count() == 1 {
-            Event::Char(
-                string.chars().next().unwrap()
-            )
-        } else {
-            Event::Unimplemented(string)
+        match string.chars().count() {
+            1 => Event::Char(string.chars().nth(0).unwrap()),
+            2 => {
+                if string.chars().nth(0).unwrap() == '\u{1b}' {
+                    Event::AltChar(string.chars().nth(1).unwrap())
+                } else {
+                    Event::Unimplemented(string)
+                }
+            },
+            _ => Event::Unimplemented(string)
         }
     }
 }
@@ -357,11 +419,12 @@ pub enum Event {
     FocusGained,
     FocusLost,
 
-    /// characters are not in [`Eventee`], because:
-    /// - a lot of reasons and im lazy at docs (will surely write a whole book about this one day)
-    /*    */Char(        char),
-    /**/CtrlChar(CtrlableChar),
-    /* */AltChar( AltableChar),
+    /// characters are not in [`Eventee`], because some modifiers for typeable characters  
+    /// produce locale specific characters (`Shift` and `AltGr`)
+    /*       */Char(           char),
+    /*    */AltChar(           char),
+    /*   */CtrlChar(   CtrlableChar),
+    /**/CtrlAltChar(CtrlAltableChar),
 
     /// `Backspace` is not in [`Eventee`], since these do not work in terminals:  
     /// - `Shift + Backspace`  
@@ -372,6 +435,18 @@ pub enum Event {
     /*   */CtrlBackspace,
     /*    */AltBackspace,
     /**/CtrlAltBackspace,
+
+    /// `Insert` is not in [`Eventee`], because `Shift` is used for bracketed paste
+    /*            */Insert,
+    /*        */CtrlInsert,
+    /*         */AltInsert,
+    /*     */CtrlAltInsert,
+    /*   */CtrlShiftInsert,
+    /*    */AltShiftInsert,
+    /**/CtrlAltShiftInsert,
+
+    /// this is the paste from your clipboard
+    Pasted(String),
 
     /// returns what was read from input when betterm cannot make sense of it,  
     /// if its relevant, you can submit an issue/pr
@@ -393,11 +468,18 @@ pub enum CtrlableChar {
     A, B, C, D, E, F, G, K, L, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
 }
 
-/// includes the whole alphabet
+/// includes the whole alphabet, except: H, I, M  
+///
+/// those 3 just do not work properly in terminals,  
+/// since they produce duplicate bytes,  
+/// where i have prioritized the other meaning:  
+/// - `Ctrl + Alt + H` = `Ctrl + Alt + Backspace`  
+/// - `Ctrl + Alt + I` = `Alt + Tab`  
+/// - `Ctrl + Alt + M` = `Alt + Enter`
 #[expect(missing_docs)]
 #[derive(Debug, Clone, Copy)]
-pub enum AltableChar {
-    A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
+pub enum CtrlAltableChar {
+    A, B, C, D, E, F, G, J, K, L, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
 }
 
 /// these events are compatible with all combinations of modifiers:  
@@ -416,7 +498,7 @@ pub enum Eventee {
     Tab,   // NOTE: deliberately not `Char('\t')`
     Escape,
     F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
-    Insert, Delete,
+    Delete,
     Home, End,
     PageUp, PageDown,
     ArrowUp, ArrowDown, ArrowRight, ArrowLeft
