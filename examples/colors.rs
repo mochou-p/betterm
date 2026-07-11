@@ -1,4 +1,4 @@
-// mochou-p/betterm/examples/usage.rs
+// mochou-p/betterm/examples/colors.rs
 
 use betterm::*;
 
@@ -40,11 +40,11 @@ fn main() {
     // level 1: manual
     println!(
         "{}hope you {}enjoy{} this {}crate{}!!{}",
-        color::fg(color::ansi::cyan()),
-        color::fg(color::ansi::green()),
-        color::fg(color::ansi::cyan()),
+        color::fg(color::ansi::  cyan()),
+        color::fg(color::ansi:: green()),
+        color::fg(color::ansi::  cyan()),
         color::fg(color::ansi::yellow()),
-        color::fg(color::ansi::cyan()),
+        color::fg(color::ansi::  cyan()),
         reset::fg()
     );
 }

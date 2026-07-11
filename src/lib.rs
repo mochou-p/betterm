@@ -10,4 +10,6 @@ pub mod color;
 pub mod reset;
 /// convenience mechanism for colorful printing
 pub mod styled_printer;
+/// set and get terminal state, events
+pub mod terminal;
 

@@ -151,80 +151,80 @@ impl StyledPrinter {
 
                     if let Some(stop) = self.stop {
                         if count > stop {
-                            writeable.write(text[..len - (count - stop)].as_bytes())?;
+                            writeable.write_all(&text.as_bytes()[..len - (count - stop)])?;
                             break;
                         } else if count == stop {
-                            writeable.write(text.as_bytes())?;
+                            writeable.write_all(text.as_bytes())?;
                             break;
                         }
                     }
 
-                    writeable.write(text.as_bytes())?;
+                    writeable.write_all(text.as_bytes())?;
                 },
                 Command::FgColor(color) => {
-                    writeable.write(color.as_bytes())?;
+                    writeable.write_all(color.as_bytes())?;
                     fg_colors.push(color);
                 },
                 Command::BgColor(color) => {
-                    writeable.write(color.as_bytes())?;
+                    writeable.write_all(color.as_bytes())?;
                     bg_colors.push(color);
                 },
                 Command::UnderlineColor(color) => {
-                    writeable.write(color.as_bytes())?;
+                    writeable.write_all(color.as_bytes())?;
                     underline_colors.push(color);
                 },
                 Command::PopFg => {
-                    if fg_colors.len() == 0 { continue; }
+                    if fg_colors.is_empty() { continue; }
                     fg_colors.pop();
 
                     if let Some(last) = fg_colors.last() {
-                        writeable.write(last.as_bytes())?;
+                        writeable.write_all(last.as_bytes())?;
                     } else {
-                        writeable.write(b"\x1b[39m")?;
+                        writeable.write_all(b"\x1b[39m")?;
                     }
                 },
                 Command::PopBg => {
-                    if bg_colors.len() == 0 { continue; }
+                    if bg_colors.is_empty() { continue; }
                     bg_colors.pop();
 
                     if let Some(last) = bg_colors.last() {
-                        writeable.write(last.as_bytes())?;
+                        writeable.write_all(last.as_bytes())?;
                     } else {
-                        writeable.write(b"\x1b[49m")?;
+                        writeable.write_all(b"\x1b[49m")?;
                     }
                 },
                 Command::PopUnderline => {
-                    if underline_colors.len() == 0 { continue; }
+                    if underline_colors.is_empty() { continue; }
                     underline_colors.pop();
 
                     if let Some(last) = underline_colors.last() {
-                        writeable.write(last.as_bytes())?;
+                        writeable.write_all(last.as_bytes())?;
                     } else {
-                        writeable.write(b"\x1b[59m")?;
+                        writeable.write_all(b"\x1b[59m")?;
                     }
                 },
                 Command::ResetAll => {
-                    writeable.write(b"\x1b[0m")?;
+                    writeable.write_all(b"\x1b[0m")?;
                     fg_colors       .clear();
                     bg_colors       .clear();
                     underline_colors.clear();
                 },
                 Command::ResetFg => {
-                    writeable.write(b"\x1b[39m")?;
+                    writeable.write_all(b"\x1b[39m")?;
                     fg_colors       .clear();
                 },
                 Command::ResetBg => {
-                    writeable.write(b"\x1b[49m")?;
+                    writeable.write_all(b"\x1b[49m")?;
                     bg_colors       .clear();
                 },
                 Command::ResetUnderline => {
-                    writeable.write(b"\x1b[59m")?;
+                    writeable.write_all(b"\x1b[59m")?;
                     underline_colors.clear();
                 }
             }
         }
 
-        writeable.write(b"\x1b[0m")?;
+        writeable.write_all(b"\x1b[0m")?;
         writeable.flush()?;
         Ok(self)
     }
