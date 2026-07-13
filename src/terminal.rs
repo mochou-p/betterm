@@ -4,7 +4,15 @@ use std::io::{self, Write, Read};
 use std::os::fd::AsRawFd;
 
 
-/// makes all terminal state raw through libc::cfmakeraw,  
+/// get the size of output in cells (not in pixels)
+pub fn size(output_fd: std::os::fd::RawFd) -> (u16, u16) {
+    let mut winsize: libc::winsize = unsafe { std::mem::zeroed() };
+    assert_eq!(unsafe { libc::ioctl(output_fd, libc::TIOCGWINSZ, &mut winsize) }, 0);
+
+    (winsize.ws_col, winsize.ws_row)
+}
+
+/// makes all input state raw through libc::cfmakeraw,  
 /// makes input block waiting for atleast 1 byte when read,  
 /// enters alternate screen,  
 /// clears the whole screen,  
@@ -14,15 +22,20 @@ use std::os::fd::AsRawFd;
 /// moves the cursor to the top left corner  
 /// (these will be customizable later)
 pub struct RawTerminal {
-    old_termios: libc::termios,
-    input:       Box<dyn ReadAndAsRawFd>,
-    output:      Box<dyn Write>
+        old_termios: libc::termios,
+    /// a stream that produces bytes (for example: events)
+    pub input:       Box<dyn Input>,
+    /// a stream that consumes bytes (for example: printing)
+    pub output:      Box<dyn Output>
 }
 
 /// combines all required traits of input into one trait
-pub trait ReadAndAsRawFd: Read + AsRawFd {}
+pub trait Input: Read + AsRawFd {}
+impl<T: Read + AsRawFd> Input for T {}
 
-impl<T: Read + AsRawFd> ReadAndAsRawFd for T {}
+/// combines all required traits of output into one trait
+pub trait Output: Write + AsRawFd {}
+impl<T: Write + AsRawFd> Output for T {}
 
 impl Write for RawTerminal {
     fn write(&mut self, buf: &[u8]) -> io::Result<usize> {
@@ -41,9 +54,8 @@ impl Read for RawTerminal {
 }
 
 impl RawTerminal {
-    /// turns input and output into raw terminal state,  
-    /// assuming stdin and stdout compatibility
-    pub fn new(input: impl ReadAndAsRawFd + 'static, mut output: impl Write + 'static) -> Self {
+    /// turns input and output into a raw state
+    pub fn new(input: impl Input + 'static, mut output: impl Output + 'static) -> Self {
         let mut maybe_termios = std::mem::MaybeUninit::uninit();
         assert_eq!(unsafe { libc::tcgetattr(input.as_raw_fd(), maybe_termios.as_mut_ptr()) }, 0);
 
@@ -54,11 +66,12 @@ impl RawTerminal {
         termios.c_cc[libc::VMIN ] = 1;
         termios.c_cc[libc::VTIME] = 0;
 
-        unsafe { libc::tcsetattr(input.as_raw_fd(), libc::TCSAFLUSH, &termios); }
+        assert_eq!(unsafe { libc::tcsetattr(input.as_raw_fd(), libc::TCSAFLUSH, &termios) }, 0);
 
         output.write_all(
             format!(
-                "{}{}{}{}{}{}{}",
+                "{}{}{}{}{}{}{}{}",
+                "\x1b[?25l",   // hide cursor
                 "\x1b[?1049h", // enter alternate screen
                 "\x1b[3J",     // clear whole screen
                 "\x1b[?1003h", // enable mouse events
@@ -375,8 +388,10 @@ impl RawTerminal {
         let end    = &string[i+1+j+1..];
         let m      = &end.chars().last().unwrap();
         let y      = &end[..end.len()-1];
-        let Ok(x)  = x.parse() else { return None; };
-        let Ok(y)  = y.parse() else { return None; };
+        let Ok(x)  = x.parse::<u16>() else { return None; };
+        let Ok(y)  = y.parse::<u16>() else { return None; };
+        let x      = x - 1;
+        let y      = y - 1;
 
         match m {
             'M' => {
@@ -535,18 +550,19 @@ impl Drop for RawTerminal {
     fn drop(&mut self) {
         let _ = self.write_all(
             format!(
-                "{}{}{}{}{}",
+                "{}{}{}{}{}{}",
                 "\x1b[?2004l", // disable bracketed paste
                 "\x1b[?1004l", // disable focus reporting
                 "\x1b[?1006l", // reduce mouse support
                 "\x1b[?1003l", // disable mouse events
-                "\x1b[?1049l"  // exit alternate screen
+                "\x1b[?1049l", // exit alternate screen
+                "\x1b[?25h"    // show cursor
             ).as_bytes()
         );
 
         let _ = self.flush();
 
-        unsafe { libc::tcsetattr(self.input.as_raw_fd(), libc::TCSAFLUSH, &self.old_termios); }
+        assert_eq!(unsafe { libc::tcsetattr(self.input.as_raw_fd(), libc::TCSAFLUSH, &self.old_termios) }, 0);
     }
 }
 
@@ -616,6 +632,26 @@ pub enum MouseEvent {
     Release(MouseButtonEvent)
 }
 
+impl MouseEvent {
+    /// useful when trying to determining focus without verbose pattern matching
+    pub fn cell(&self) -> (u16, u16) {
+        match self {
+            Self::Scroll( se)                                         =>  se.cell(),
+            Self::Hover ( he)                                         =>  he.cell(),
+            Self::Drag  (mbe) | Self::Press(mbe) | Self::Release(mbe) => mbe.cell()
+        }
+    }
+
+    /// useful when trying to get a relative position
+    pub fn correct_by(&mut self, xoff: u16, yoff: u16) {
+        match self {
+            Self::Scroll( se)                                         =>  se.correct_by(xoff, yoff),
+            Self::Hover ( he)                                         =>  he.correct_by(xoff, yoff),
+            Self::Drag  (mbe) | Self::Press(mbe) | Self::Release(mbe) => mbe.correct_by(xoff, yoff)
+        }
+    }
+}
+
 #[expect(missing_docs)]
 #[derive(Debug, Clone)]
 pub enum ScrollEvent {
@@ -625,11 +661,54 @@ pub enum ScrollEvent {
     /**/    CtrlAlt(ScrollDirection)
 }
 
+impl ScrollEvent {
+    /// useful when trying to determining focus without verbose pattern matching
+    pub fn cell(&self) -> (u16, u16) {
+        match self {
+            Self::NoModifiers(sd)
+                | Self::Ctrl   (sd)
+                | Self::    Alt(sd)
+                | Self::CtrlAlt(sd)
+            => sd.cell()
+        }
+    }
+
+    /// useful when trying to get a relative position
+    pub fn correct_by(&mut self, xoff: u16, yoff: u16) {
+        match self {
+            Self::NoModifiers(sd)
+                | Self::Ctrl   (sd)
+                | Self::    Alt(sd)
+                | Self::CtrlAlt(sd)
+            => sd.correct_by(xoff, yoff)
+        }
+    }
+}
+
 #[expect(missing_docs)]
 #[derive(Debug, Clone)]
 pub enum ScrollDirection {
     Up  (u16, u16),
     Down(u16, u16)
+}
+
+impl ScrollDirection {
+    /// useful when trying to determining focus without verbose pattern matching
+    pub fn cell(&self) -> (u16, u16) {
+        match self {
+            Self::Up(x, y) | Self::Down(x, y) => (*x, *y)
+        }
+    }
+
+    /// useful when trying to get a relative position
+    pub fn correct_by(&mut self, xoff: u16, yoff: u16) {
+        match self {
+            Self::Up(x, y) | Self::Down(x, y) => {
+                *x -= xoff;
+                *y -= yoff;
+            }
+        }
+    }
 }
 
 #[expect(missing_docs)]
@@ -641,6 +720,33 @@ pub enum HoverEvent {
     /**/    CtrlAlt(u16, u16)
 }
 
+impl HoverEvent {
+    /// useful when trying to determining focus without verbose pattern matching
+    pub fn cell(&self) -> (u16, u16) {
+        match self {
+            Self::NoModifiers(x, y)
+                | Self::Ctrl   (x, y)
+                | Self::    Alt(x, y)
+                | Self::CtrlAlt(x, y)
+            => (*x, *y)
+        }
+    }
+
+    /// useful when trying to get a relative position
+    pub fn correct_by(&mut self, xoff: u16, yoff: u16) {
+        match self {
+            Self::NoModifiers(x, y)
+                | Self::Ctrl   (x, y)
+                | Self::    Alt(x, y)
+                | Self::CtrlAlt(x, y)
+            => {
+                *x -= xoff;
+                *y -= yoff;
+            }
+        }
+    }
+}
+
 #[expect(missing_docs)]
 #[derive(Debug, Clone)]
 pub enum MouseButtonEvent {
@@ -648,6 +754,30 @@ pub enum MouseButtonEvent {
     /**/    Ctrl   (MouseButton),
     /**/        Alt(MouseButton),
     /**/    CtrlAlt(MouseButton)
+}
+
+impl MouseButtonEvent {
+    /// useful when trying to determining focus without verbose pattern matching
+    pub fn cell(&self) -> (u16, u16) {
+        match self {
+            Self::NoModifiers(mb)
+                | Self::Ctrl   (mb)
+                | Self::    Alt(mb)
+                | Self::CtrlAlt(mb)
+            => mb.cell()
+        }
+    }
+
+    /// useful when trying to get a relative position
+    pub fn correct_by(&mut self, xoff: u16, yoff: u16) {
+        match self {
+            Self::NoModifiers(mb)
+                | Self::Ctrl   (mb)
+                | Self::    Alt(mb)
+                | Self::CtrlAlt(mb)
+            => mb.correct_by(xoff, yoff)
+        }
+    }
 }
 
 #[expect(missing_docs)]
@@ -660,6 +790,44 @@ pub enum MouseButton {
     Forward(u16, u16)
 }
 
+impl MouseButton {
+    /// useful when trying to determining focus without verbose pattern matching
+    pub fn cell(&self) -> (u16, u16) {
+        match self {
+            Self::Left(x, y)
+                | Self::Middle (x, y)
+                | Self::Right  (x, y)
+                | Self::Back   (x, y)
+                | Self::Forward(x, y)
+            => (*x, *y)
+        }
+    }
+
+    /// useful when trying to get a relative position
+    pub fn correct_by(&mut self, xoff: u16, yoff: u16) {
+        match self {
+            Self::Left(x, y)
+                | Self::Middle (x, y)
+                | Self::Right  (x, y)
+                | Self::Back   (x, y)
+                | Self::Forward(x, y)
+            => {
+                *x -= xoff;
+                *y -= yoff;
+            }
+        }
+    }
+}
+
+/// these events are compatible with all combinations of modifiers:  
+/// - none  
+/// - `Ctrl`  
+/// - `Alt`  
+/// - `Shift`  
+/// - `Ctrl + Alt`  
+/// - `Ctrl + Shift`  
+/// - `Alt + Shift`  
+/// - `Ctrl + Alt + Shift`
 #[expect(missing_docs)]
 #[derive(Debug, Clone)]
 pub enum Key {
@@ -675,7 +843,7 @@ pub enum Key {
 
 // ------------------------------------------------------------------------------------------------------------------ //
 
-/// includes the whole alphabet, except: H, I, J, M  
+/// includes the whole alphabet, except: `H`, `I`, `J`, `M`  
 ///
 /// those 4 just do not work properly in terminals,  
 /// since they produce duplicate bytes,  
@@ -690,7 +858,7 @@ pub enum CtrlableChar {
     A, B, C, D, E, F, G, K, L, N, O, P, Q, R, S, T, U, V, W, X, Y, Z
 }
 
-/// includes the whole alphabet, except: H, I, M  
+/// includes the whole alphabet, except: `H`, `I`, `M`  
 ///
 /// those 3 just do not work properly in terminals,  
 /// since they produce duplicate bytes,  

@@ -136,8 +136,9 @@ impl StyledPrinter {
         self
     }
 
+    // TODO: also only return bytes and dont write or flush
     /// print the accumulated styled contents
-    pub fn write_and_flush(self, mut writeable: impl Write) -> io::Result<Self> {
+    pub fn write_and_flush(self, output: &mut impl Write) -> io::Result<Self> {
         let mut            count = 0;
         let mut        fg_colors = vec![];
         let mut        bg_colors = vec![];
@@ -151,26 +152,26 @@ impl StyledPrinter {
 
                     if let Some(stop) = self.stop {
                         if count > stop {
-                            writeable.write_all(&text.as_bytes()[..len - (count - stop)])?;
+                            output.write_all(&text.as_bytes()[..len - (count - stop)])?;
                             break;
                         } else if count == stop {
-                            writeable.write_all(text.as_bytes())?;
+                            output.write_all(text.as_bytes())?;
                             break;
                         }
                     }
 
-                    writeable.write_all(text.as_bytes())?;
+                    output.write_all(text.as_bytes())?;
                 },
                 Command::FgColor(color) => {
-                    writeable.write_all(color.as_bytes())?;
+                    output.write_all(color.as_bytes())?;
                     fg_colors.push(color);
                 },
                 Command::BgColor(color) => {
-                    writeable.write_all(color.as_bytes())?;
+                    output.write_all(color.as_bytes())?;
                     bg_colors.push(color);
                 },
                 Command::UnderlineColor(color) => {
-                    writeable.write_all(color.as_bytes())?;
+                    output.write_all(color.as_bytes())?;
                     underline_colors.push(color);
                 },
                 Command::PopFg => {
@@ -178,9 +179,9 @@ impl StyledPrinter {
                     fg_colors.pop();
 
                     if let Some(last) = fg_colors.last() {
-                        writeable.write_all(last.as_bytes())?;
+                        output.write_all(last.as_bytes())?;
                     } else {
-                        writeable.write_all(b"\x1b[39m")?;
+                        output.write_all(b"\x1b[39m")?;
                     }
                 },
                 Command::PopBg => {
@@ -188,9 +189,9 @@ impl StyledPrinter {
                     bg_colors.pop();
 
                     if let Some(last) = bg_colors.last() {
-                        writeable.write_all(last.as_bytes())?;
+                        output.write_all(last.as_bytes())?;
                     } else {
-                        writeable.write_all(b"\x1b[49m")?;
+                        output.write_all(b"\x1b[49m")?;
                     }
                 },
                 Command::PopUnderline => {
@@ -198,34 +199,34 @@ impl StyledPrinter {
                     underline_colors.pop();
 
                     if let Some(last) = underline_colors.last() {
-                        writeable.write_all(last.as_bytes())?;
+                        output.write_all(last.as_bytes())?;
                     } else {
-                        writeable.write_all(b"\x1b[59m")?;
+                        output.write_all(b"\x1b[59m")?;
                     }
                 },
                 Command::ResetAll => {
-                    writeable.write_all(b"\x1b[0m")?;
+                    output.write_all(b"\x1b[0m")?;
                     fg_colors       .clear();
                     bg_colors       .clear();
                     underline_colors.clear();
                 },
                 Command::ResetFg => {
-                    writeable.write_all(b"\x1b[39m")?;
-                    fg_colors       .clear();
+                    output.write_all(b"\x1b[39m")?;
+                    fg_colors.clear();
                 },
                 Command::ResetBg => {
-                    writeable.write_all(b"\x1b[49m")?;
-                    bg_colors       .clear();
+                    output.write_all(b"\x1b[49m")?;
+                    bg_colors.clear();
                 },
                 Command::ResetUnderline => {
-                    writeable.write_all(b"\x1b[59m")?;
+                    output.write_all(b"\x1b[59m")?;
                     underline_colors.clear();
                 }
             }
         }
 
-        writeable.write_all(b"\x1b[0m")?;
-        writeable.flush()?;
+        output.write_all(b"\x1b[0m")?;
+        output.flush()?;
         Ok(self)
     }
 }

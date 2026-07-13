@@ -17,7 +17,7 @@ fn main() {
                 .text("!!")
         })
         .text("\n")
-        .write_and_flush(std::io::stdout())
+        .write_and_flush(&mut std::io::stdout())
         .unwrap();
 
     // level 2: push/pop
@@ -34,7 +34,7 @@ fn main() {
             .text("!!")
         .pop_fg()
         .text("\n")
-        .write_and_flush(std::io::stdout())
+        .write_and_flush(&mut std::io::stdout())
         .unwrap();
 
     // level 1: manual
