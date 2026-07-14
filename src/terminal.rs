@@ -568,7 +568,7 @@ impl Drop for RawTerminal {
 
 #[expect(missing_docs)]
 #[derive(Debug, Clone)]
-pub enum Event {
+pub enum Event<T = ()> {
     Keyboard(KeyboardEvent),
     Mouse   (   MouseEvent),
 
@@ -577,7 +577,10 @@ pub enum Event {
 
     /// returns what was read from input when betterm cannot make sense of it,  
     /// if its relevant, you can submit an issue/pr
-    Unimplemented(String)
+    Unimplemented(String),
+
+    /// for your custom needs!
+    Custom(T)
 }
 
 #[expect(missing_docs)]
