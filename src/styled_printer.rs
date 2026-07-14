@@ -136,9 +136,8 @@ impl StyledPrinter {
         self
     }
 
-    // TODO: also only return bytes and dont write or flush
-    /// print the accumulated styled contents
-    pub fn write_and_flush(self, output: &mut impl Write) -> io::Result<Self> {
+    /// print the accumulated styled contents (write but not flush)
+    pub fn write_all(self, output: &mut impl Write) -> io::Result<Self> {
         let mut            count = 0;
         let mut        fg_colors = vec![];
         let mut        bg_colors = vec![];
@@ -226,7 +225,6 @@ impl StyledPrinter {
         }
 
         output.write_all(b"\x1b[0m")?;
-        output.flush()?;
         Ok(self)
     }
 }

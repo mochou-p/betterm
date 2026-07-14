@@ -1,11 +1,14 @@
 // mochou-p/betterm/examples/colors.rs
 
+use std::io::Write as _;
 use betterm::*;
 
 
 fn main() {
     // of course you can mix `with` and `push/pop`,
     // based on your use case of each color
+
+    // --------------------------------------------
 
     // level 3: with
     styled_printer::StyledPrinter::default()
@@ -17,8 +20,13 @@ fn main() {
                 .text("!!")
         })
         .text("\n")
-        .write_and_flush(&mut std::io::stdout())
+        .write_all(&mut std::io::stdout())
         .unwrap();
+
+    // NOTE: dont forget this!
+    std::io::stdout().flush().unwrap();
+
+    // --------------------------------------------
 
     // level 2: push/pop
     styled_printer::StyledPrinter::default()
@@ -34,8 +42,13 @@ fn main() {
             .text("!!")
         .pop_fg()
         .text("\n")
-        .write_and_flush(&mut std::io::stdout())
+        .write_all(&mut std::io::stdout())
         .unwrap();
+
+    // NOTE: dont forget this!
+    std::io::stdout().flush().unwrap();
+
+    // --------------------------------------------
 
     // level 1: manual
     println!(
