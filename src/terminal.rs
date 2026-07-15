@@ -497,7 +497,7 @@ impl RawTerminal {
         }
     }
 
-    fn other_event(string: String) -> Event {
+    fn other_event<T>(string: String) -> Event<T> {
         match string.chars().count() {
             1 => {
                 return Event::Keyboard(
@@ -528,10 +528,9 @@ impl RawTerminal {
         Event::Unimplemented(string)
     }
 
-    // NOTE: all my homies hate advanced ANSI escapes
     // TODO: breaks when multiple events are read at one time
     /// waits forever until something happens
-    pub fn blocking_event(&mut self) -> Event {
+    pub fn blocking_event<T>(&mut self) -> Event<T> {
         let string = self.read_event_to_string();
 
         if let Some(keyboard_event) = self.keyboard_event(&string) {

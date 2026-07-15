@@ -10,7 +10,7 @@ fn main() {
     );
 
     loop {
-        let event = terminal.blocking_event();
+        let event = terminal.blocking_event::<()>();
 
         if matches!(
             event,
